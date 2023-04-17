@@ -179,7 +179,7 @@ def generate_index(multi,data_rxn,rxn_selection):
         st.session_state["initialized"] = True
     else:
         multi_filtered = filter_rxn(multi,data_rxn,rxn_selection)
-        prev_mol_subid = st.session_state["mol_subid"]
+        #prev_mol_subid = st.session_state["mol_subid"]
         prev_molid = st.session_state["data_index"][0]
         prev_ftn_subid, prev_num_ftnl_groups = st.session_state["ftn_tracking"]
 
@@ -213,7 +213,6 @@ def generate_index(multi,data_rxn,rxn_selection):
 
             reached_last_mol = True if (current_mol_subid >= molnum - 1) else False
 
-
             if iteration_selection == "random":
                 mol_subid = np.random.randint(0,molnum) #IMPORTANT
                 molid = molids[mol_subid]
@@ -231,7 +230,7 @@ def generate_index(multi,data_rxn,rxn_selection):
             multi_filtered = st.session_state["prev_data"]
             molids = multi_filtered.index.get_level_values(0).unique()
             molnum = molids.values.size
-            mol_subid = prev_mol_subid
+            mol_subid = np.argwhere( molids == prev_molid )[0][0] #prev_mol_subid
             molid = molids[mol_subid]
             description_base = "##### continuing with molecule  \n"
 
@@ -249,7 +248,7 @@ def generate_index(multi,data_rxn,rxn_selection):
     st.session_state["prev_data"] = multi_filtered
     st.session_state["data_index"] = (molid, ftn_group_ids)
     st.session_state["ftn_tracking"] = (ftn_subid,num_ftnl_groups)
-    st.session_state["mol_subid"] = mol_subid
+    #st.session_state["mol_subid"] = mol_subid
     st.session_state["data_index_description"] = description
 
     return (molid,ftn_group_ids),multi_filtered
@@ -318,7 +317,7 @@ def generate_index_by_matchid(multi,data_rxn,rxn_selection):
         match_id = np.random.randint(0,match_totals) #chooses a random match
 
     # store and return
-    st.session_state["subid"] = subid
+    #st.session_state["subid"] = subid
     st.session_state["data_index_description"] = f"**Molecule:**\t\t `{molid:{numdigits_str}}` ({subid}/{molnum} monomers identified for the chosen reaction type)  \n**Rxn type:**\t\t `{rxn_name}`  \n**Showing:**\t\t `{match_id+1}`/`{match_totals}` reactive sites identified"
 
     return (molid,rxn_name,ftn_id,match_id),multi
@@ -421,7 +420,6 @@ else:
 
 molids = multi_filtered.index.get_level_values(0).unique()
 molnum = molids.values.size
-#subid = st.session_state["subid"]
 
 
 # ===== Actual main content
