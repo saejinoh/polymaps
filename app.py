@@ -86,6 +86,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+if "b_update_data" not in st.session_state:
+    st.session_state["b_update_data"] = False
 def set_update_data_flag(flag):
     st.session_state["b_update_data"] = flag
 
@@ -106,13 +108,13 @@ def random_molecule(data,rxn_name = None):
 def filter_rxn(data, data_rxn, rxn_name = None):
     """return molids that are consistent"""
     #TMP, remove step reactions
-    rxn_names = data.index.get_level_values(1)
+    rxn_names = data.index.get_level_values("rxn_name")
     step_rxn_names = [x for x in rxn_names if x.startswith("step")]
 
     # filter by reaction name. TODO: step reactions needs adjustment
     if rxn_name is None or rxn_name == "choose for me!":
         # TMP, remove step reactions
-        sub_data = data.iloc[ ~data.index.get_level_values(1).isin(step_rxn_names) ]
+        sub_data = data.iloc[ ~data.index.get_level_values("rxn_name").isin(step_rxn_names) ]
         inds = sub_data.index.get_level_values(0).unique().values
     else:
         # filter by rxn_name
@@ -138,7 +140,7 @@ def filter_rxn(data, data_rxn, rxn_name = None):
     # return
     return sub_data
 
-def generate_index(multi,data_rxn,rxn_selection):
+def generate_index(multi_filtered):
     """Generate next molecule's index (and data) if needed
 
     Args:
@@ -153,7 +155,6 @@ def generate_index(multi,data_rxn,rxn_selection):
         To simplify interface, makes use of st.session_state:
             - ftn_tracking
             - prev_data
-            - subid
         And also saves to st.session_state, both the above, and:
             - data_index
             - data_index_description
@@ -164,7 +165,6 @@ def generate_index(multi,data_rxn,rxn_selection):
     """
     
     if "initialized" not in st.session_state:
-        multi_filtered = filter_rxn(multi,data_rxn,rxn_selection)
         molids = multi_filtered.index.get_level_values(0).unique()
         molnum = molids.values.size
         mol_subid = np.random.randint(0,molnum) #default to random molecule
@@ -178,7 +178,6 @@ def generate_index(multi,data_rxn,rxn_selection):
         description_base = ""
         st.session_state["initialized"] = True
     else:
-        multi_filtered = filter_rxn(multi,data_rxn,rxn_selection)
         #prev_mol_subid = st.session_state["mol_subid"]
         prev_molid = st.session_state["data_index"][0]
         prev_ftn_subid, prev_num_ftnl_groups = st.session_state["ftn_tracking"]
@@ -193,7 +192,7 @@ def generate_index(multi,data_rxn,rxn_selection):
         else:
             b_finished_mol = False
 
-        multi_filtered = filter_rxn(multi,data_rxn,rxn_selection)
+
 
         if b_mol_out_of_set:
             molids = multi_filtered.index.get_level_values(0).unique()
@@ -251,12 +250,9 @@ def generate_index(multi,data_rxn,rxn_selection):
     #st.session_state["mol_subid"] = mol_subid
     st.session_state["data_index_description"] = description
 
-    return (molid,ftn_group_ids),multi_filtered
+    return molid,ftn_group_ids
     
-def generate_index_by_matchid(multi,data_rxn,rxn_selection):
-    multi = filter_rxn(multi,data_rxn,rxn_selection)
-    st.session_state["prev_data"] = multi
-
+def generate_index_by_matchid(multi_filtered):
     # utility
     molids = multi.index.get_level_values(0).unique()
     molnum = molids.values.size
@@ -320,7 +316,7 @@ def generate_index_by_matchid(multi,data_rxn,rxn_selection):
     #st.session_state["subid"] = subid
     st.session_state["data_index_description"] = f"**Molecule:**\t\t `{molid:{numdigits_str}}` ({subid}/{molnum} monomers identified for the chosen reaction type)  \n**Rxn type:**\t\t `{rxn_name}`  \n**Showing:**\t\t `{match_id+1}`/`{match_totals}` reactive sites identified"
 
-    return (molid,rxn_name,ftn_id,match_id),multi
+    return molid,rxn_name,ftn_id,match_id
 
 def characterize_substituents(match_specific_data):
     ftn_group_ids = ast.literal_eval(match_specific_data.iloc[0].matchidx)
@@ -357,23 +353,23 @@ with st.sidebar:
     st.markdown("### On next molecule, show...")
     
     rxn_selection = st.selectbox("reaction type",("choose for me!",*rxn_types),
-                                 on_change=lambda: set_update_data_flag(True))
+                                 on_change = lambda: set_update_data_flag(True))
 
     #radio1 = st.radio("iteration mode",("same molecule, new prediction","new molecule"),horizontal=True)
 
     #radio2 = st.radio("randomization mode:",("sequential","random"),horizontal=True)
 
     iteration_selection = st.selectbox("molecule iteration mode:",
-        ("random","sequential"),index=1, on_change = lambda x:set_update_data_flag(True))
+        ("random","sequential"),index=1, on_change = lambda: set_update_data_flag(True))
 
     # MW
     slider_MW = st.slider("MW range",0.,st.session_state.max_MW,(10.,st.session_state.max_MW),
-                          on_change = lambda x: set_update_data_flag(True))
+                          on_change = lambda: set_update_data_flag(True))
     
     # Simplicity/Complexity
     # (# of polymerizations identified, # functional groups, # subsitutents)
     slider_num_ftn = st.slider("number functional groups",1,st.session_state.max_numftn,(1,st.session_state.max_numftn),
-                               on_change = lambda x: set_update_data_flag(True))
+                               on_change = lambda: set_update_data_flag(True))
 
     # Bulkiness
 
@@ -388,12 +384,19 @@ with st.sidebar:
 
         if submitted:
             # only update data after submission
+            if st.session_state["b_update_data"]:
+                multi_filtered = filter_rxn(multi,data_rxn,rxn_selection)
+                st.session_state["b_update_data"] = False
+                st.session_state["prev_data"] = multi_filtered
+            else:
+                multi_filtered = st.session_state["prev_data"]
+
             if iterate_by_matchidx:
                 #b = filter_rxn(multi,data_rxn,rxn_selection)
                 #st.session_state["prev_data"] = b
-                st.session_state["data_index"],st.session_state["prev_data"] = generate_index_by_matchid(multi,data_rxn,rxn_selection)
+                st.session_state["data_index"]= generate_index_by_matchid(multi_filtered)
             else:
-                st.session_state["data_index"],st.session_state["prev_data"] = generate_index(multi,data_rxn,rxn_selection)
+                st.session_state["data_index"] = generate_index(multi_filtered)
             set_update_data_flag(False)
 
     # Other comments
@@ -408,12 +411,13 @@ with st.sidebar:
 #a,b = filter_rxn(multi,data_rxn,rxn_selection)
 # initialize data
 if "prev_data" not in st.session_state: #first time through
+    multi_filtered = filter_rxn(multi,data_rxn,None)
+    st.session_state["prev_data"] = multi_filtered
     if iterate_by_matchidx:
-        st.session_state["data_index"],multi_filtered = generate_index_by_matchid(multi,data_rxn,None)
-        st.session_state["prev_data"] = multi_filtered
+        st.session_state["data_index"] = generate_index_by_matchid(multi_filtered)
+        
     else:
-        st.session_state["data_index"],multi_filtered = generate_index(multi,data_rxn,None)
-        st.session_state["prev_data"] = multi_filtered
+        st.session_state["data_index"] = generate_index(multi_filtered)
 else:
     multi_filtered = st.session_state["prev_data"]
 
