@@ -24,10 +24,7 @@ def load_data():
     #   return frozenset( ast.literal_eval(mystr))
     #data_df["matchidx"] = data_df["matchidx"].map(toset)
     if iterate_by_matchidx:
-        #multi = data_df.set_index(["molid","matchidx","rxn_name"])
-        #st.write(multi.loc[(0,'(2, 3)','simple')])
         multi   = data_df.set_index(["molid","rxn_name","ftn_id","matchid"])
-        #st.write(multi.loc[(0,'simple',0,1)])
     else:
         multi = data_df.set_index(["molid","matchidx","rxn_name"])
 
@@ -56,34 +53,18 @@ def load_data():
 
 multi,data_rxn = load_data()
 
+# Key variable initializations
 if "max_MW" not in st.session_state:
     st.session_state["max_MW"] = data_rxn.MW.max()
 if "max_numftn" not in st.session_state:
     st.session_state["max_numftn"] = int(data_rxn.num_ftn.max())
 
-# Key variables
 quality_dict = {0:"poor",1:"decent",2:"promising"}
 eprop_dict = {-1:"withdrawing", 1:"donating", 0:"undetermined"}
 index = {"molid":0, "rxn_name":1, "ftn_id":2, "matchid":3}
 rxn_types = data_rxn.columns
 # TMP: eliminate step reactions
 rxn_types = [x for x in rxn_types if not x.startswith("step") and x != "smiles"]
-
-
-# Formatting
-st.markdown("""
-<style>
-.big-font {
-    font-size:25px !important;
-}
-</style>
-<style>
-.med-font {
-    font-size:20px !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
 
 if "b_update_data" not in st.session_state:
     st.session_state["b_update_data"] = False
@@ -241,7 +222,7 @@ def generate_index(multi_filtered):
     numdigits=len(str(molnum))
     numdigits_str = "0"+str(numdigits)
 
-    if "rxn_selection" not in locals(): #to avoid circularity with first call before navigation bar is loaded
+    if "rxn_selection" not in locals(): #to avoid circularity during first call before navigation bar is loaded
         description = description_base + f"**Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n**Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `any`"
     else:
         description = description_base + f"**Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n**Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `{rxn_selection}`"
@@ -254,6 +235,8 @@ def generate_index(multi_filtered):
     return molid,ftn_group_ids
     
 def generate_index_by_matchid(multi_filtered):
+    """Right now just chooses random reaction groups. Incomplete. Here for legacy reasons."""
+
     # utility
     molids = multi.index.get_level_values("molid").unique()
     molnum = molids.values.size
@@ -268,45 +251,17 @@ def generate_index_by_matchid(multi_filtered):
         prev_molid = -1
         first_time = True
 
-    # figure out generation mode
-    #if radio2 == "random" and radio1 == "new molecule":
-    #    mode_new_mol = "random"
-    #   mode_new_rxn = "random"
-    #    mode_new_ftnid = "random"
-    #    mode_new_matchid = "true"
-    #elif radio2 == "random" and radio1.startswith("same molecule"):
-        # only do new (random) molecule once matchids are exhausted
-    #    mode_new_mol = "same"
-    #    mode_new_rxn = "random"
-    #    mode_new_matchid = "random"
-    #    mode_new_ftnid = "random"
-    #elif radio2 == "sequential" and radio1 == "new molecule":
-    #    pass
-
-    # actually select index
-    #if radio1 == "new molecule" and radio2 == "random" or first_time or prev_molid not in molids:
-    #    subid = np.random.randint(0,molnum) #IMPORTANT
-    #elif radio1 == "new molecule":
-    #    pass
-    #else:
-    #    prev_subid = np.argwhere(molids == prev_molid)[0][0]
-    #    prev_molid = molids[prev_subid]
-    #    subid = np.minimum(prev_subid+1,molnum-1)
-
     subid = np.random.randint(0,molnum) #IMPORTANT
     molid = molids[subid]
-    #molid = 1818 # TICKET: rop-amine, bad rule
 
     mol_specific_data = multi.query(f"molid == {molid}")
 
     # if "choose for me!", choose a random reaction
     if rxn_selection == "choose for me!":
         rxn_types = mol_specific_data.index.get_level_values("rxn_name").unique().values
-        #rxn_types = [ x for x in rxn_types if not x.startswith("step")] #TMP, remove step reactions for now
-        #rxn_types
         rxn_name = random.choice(rxn_types)
     else:
-        rxn_name = mol_specific_data.index[0][1] # in my scheme, should all be the same reaction name
+        rxn_name = mol_specific_data.index[0][1] # in my scheme, should all be the same reaction name???
 
     if not rxn_name.startswith("step"): #TMP filter out step
         ftn_id = 0
@@ -314,7 +269,6 @@ def generate_index_by_matchid(multi_filtered):
         match_id = np.random.randint(0,match_totals) #chooses a random match
 
     # store and return
-    #st.session_state["subid"] = subid
     st.session_state["data_index_description"] = f"**Molecule:**\t\t `{molid:{numdigits_str}}` ({subid}/{molnum} monomers identified for the chosen reaction type)  \n**Rxn type:**\t\t `{rxn_name}`  \n**Showing:**\t\t `{match_id+1}`/`{match_totals}` reactive sites identified"
 
     return molid,rxn_name,ftn_id,match_id
@@ -341,7 +295,6 @@ def characterize_substituents_by_matchid(match_specific_data):
     description = ""
     for entry in substituents:
         description += f"- root atom `{entry[0]}`\n  - electronic properties: `{entry[1]}`\n  - bulkiness: `{entry[2]:0.2}`\n"
-    #evaluation += f"\nEstimated quality: {quality_dict[quality]}"
     return evaluation,description
 
 
@@ -358,8 +311,6 @@ else:
     multi_filtered = st.session_state["prev_data"]
 molids = multi_filtered.index.get_level_values("molid").unique()
 molnum = molids.values.size
-
-st.write(st.session_state["data_index"])
 
 
 # ===== Navigation Sidebar and submission logic
@@ -380,18 +331,11 @@ def submit_update():
 
 
 with st.sidebar:
-    #st.write("Navigation")
-    #st.markdown('<u><p class="big-font">Navigation</p><u>',unsafe_allow_html=True)
-    #st.markdown('<p class="med-font">On submission present...</p>',unsafe_allow_html=True)
     st.markdown("# Navigation")
     st.markdown("### On next molecule, show...")
     
     rxn_selection = st.selectbox("reaction type",("choose for me!",*rxn_types),
                                  on_change = lambda: set_update_data_flag(True))
-
-    #radio1 = st.radio("iteration mode",("same molecule, new prediction","new molecule"),horizontal=True)
-
-    #radio2 = st.radio("randomization mode:",("sequential","random"),horizontal=True)
 
     iteration_selection = st.selectbox("molecule iteration mode:",
         ("random","sequential"),index=1, on_change = lambda: set_update_data_flag(True))
@@ -409,14 +353,12 @@ with st.sidebar:
 
     # Submission
     with st.form("evaluation",clear_on_submit = True):
-        #st.markdown("##### Quality of this identified polymerization site (in green)?")
         st.markdown("**Functional group quality for...**")
         radio_quality_list = []
 
         multi_filtered = st.session_state["prev_data"]
         match_specific_data = multi_filtered.loc[ st.session_state["data_index"] ]
-        st.write(st.session_state["data_index"] )
-        st.write(match_specific_data)
+
         rxn_types = match_specific_data.index.unique("rxn_name")
 
         for rxn_name in rxn_types:
@@ -436,15 +378,7 @@ with st.sidebar:
         comment_area = st.text_area("General comments?","")
         submitted = st.form_submit_button("submit")
 
-
-st.write(st.session_state["data_index"])
-
 # ===== Actual main content
-# Other
-#compound_smiles = 'c1cc(C(=O)O)c(OC(=O)C)cc1'
-#compound_smiles = 'CC[C@H](C)C=CC1=CC2=C(C(=O)[C@@]3(C(=C(C(=O)O3)C(=O)C(=CC)C)C2=CN1CCCC(=O)O)C)Cl'
-
-
 # retrieve index, molecule, match
 if iterate_by_matchidx:
     molid,rxn_name,ftn_id,match_id = st.session_state["data_index"]
@@ -488,41 +422,14 @@ else:
     highlightcolors,highlightbonds = mychem.color_ftn(mol,ftn_group_ids)
     im = mychem.highlight_draw(mol,highlightcolors,highlightbonds)
 
-st.session_state["data_index"]
 
 # ===== Display
 st.image(im)
 st.markdown(st.session_state["data_index_description"])
-# Submission
-#with st.form("form-ftn-specific"):
-#    st.write("Quality of this functional group")
 st.markdown(f"{evaluation}")
 checkbox_details = st.checkbox('Show substituent analysis below')
 if checkbox_details:
     st.markdown(description)
 
 # ===== Misc
-
-#st.markdown("# Navigation")
-#st.markdown("### On submission, show...")
-#selection = st.selectbox("reaction type2",("choose for me!","next"))
-#radio1 = st.radio("",("same molecule2, new prediction","new molecule"),horizontal=True)
-#radio2 = st.radio("",("sequential2","random"),horizontal=True)
-#st.markdown("### Polymerization monomer browser")
-
-
-#col1,col2 = st.columns(2)
-#with col1:
-#    st.markdown(f"**Molecule:**\t\t `{molid:{numdigits_str}}` ({subid}/{molnum} monomers identified for the chosen reaction type)  \n**Rxn type:**\t\t `{rxn_name}`  \n**Showing:**\t\t `{match_id+1}`/`{match_totals}` reactive sites identified")
-
-#with col2:
-    #rxn_id   = 1
-    #rxn_totals = 2
-    #({rxn_id+1}/{rxn_totals} reaction types for this molecule)
-    #st.write("Molecule: \t",molid,"/",molnum)
-    #st.write("Rxn type: \t",rxn_name)
-
-    #st.text(f"{evaluation}")
-#    st.markdown(f"{evaluation}")
-    #previous = st.form_submit_button("previous")
 
