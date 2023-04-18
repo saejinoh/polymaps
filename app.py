@@ -61,7 +61,6 @@ if "max_MW" not in st.session_state:
 if "max_numftn" not in st.session_state:
     st.session_state["max_numftn"] = int(data_rxn.num_ftn.max())
 
-
 # Key variables
 quality_dict = {0:"poor",1:"decent",2:"promising"}
 eprop_dict = {-1:"withdrawing", 1:"donating", 0:"undetermined"}
@@ -115,7 +114,7 @@ def filter_rxn(data, data_rxn, rxn_name = None):
     if rxn_name is None or rxn_name == "choose for me!":
         # TMP, remove step reactions
         sub_data = data.iloc[ ~data.index.get_level_values("rxn_name").isin(step_rxn_names) ]
-        inds = sub_data.index.get_level_values(0).unique().values
+        inds = sub_data.index.get_level_values("molid").unique().values
     else:
         # filter by rxn_name
         inds = np.argwhere( (data_rxn[rxn_name]>0).values ).flatten() #alternative way to filter
@@ -124,18 +123,19 @@ def filter_rxn(data, data_rxn, rxn_name = None):
         sub_data = data.query("rxn_name in @rxns_of_interest")
         #sub_data = sub_data[ sub_data.index.get_level_values(rxn_name).isin([rxn_name])] 
 
-    # filter by MW
-    inds_where_MW_range = data_rxn.loc[ 
-        (data_rxn.MW>= slider_MW[0]) & 
-        (data_rxn.MW <= slider_MW[1]) ].index.values
+    if "prev_data" in st.session_state:
+        # filter by MW
+        inds_where_MW_range = data_rxn.loc[ 
+            (data_rxn.MW>= slider_MW[0]) & 
+            (data_rxn.MW <= slider_MW[1]) ].index.values
 
-    sub_data = sub_data.query( "molid in @inds_where_MW_range")
+        sub_data = sub_data.query( "molid in @inds_where_MW_range")
 
-    # filter by number of functional groups
-    inds_where_num_ftn_range = data_rxn.loc[ 
-        (data_rxn.num_ftn>= slider_num_ftn[0]) & 
-        (data_rxn.num_ftn <= slider_num_ftn[1]) ].index.values
-    sub_data = sub_data.query( "molid in @inds_where_num_ftn_range")
+        # filter by number of functional groups
+        inds_where_num_ftn_range = data_rxn.loc[ 
+            (data_rxn.num_ftn>= slider_num_ftn[0]) & 
+            (data_rxn.num_ftn <= slider_num_ftn[1]) ].index.values
+        sub_data = sub_data.query( "molid in @inds_where_num_ftn_range")
 
     # return
     return sub_data
@@ -165,7 +165,7 @@ def generate_index(multi_filtered):
     """
     
     if "initialized" not in st.session_state:
-        molids = multi_filtered.index.get_level_values(0).unique()
+        molids = multi_filtered.index.get_level_values("molid").unique()
         molnum = molids.values.size
         mol_subid = np.random.randint(0,molnum) #default to random molecule
         molid = molids[mol_subid]
@@ -192,10 +192,8 @@ def generate_index(multi_filtered):
         else:
             b_finished_mol = False
 
-
-
         if b_mol_out_of_set:
-            molids = multi_filtered.index.get_level_values(0).unique()
+            molids = multi_filtered.index.get_level_values("molid").unique()
             molnum = molids.values.size
 
             description_base = "##### previous molecule out of filtered set, returning random molecule  \n"
@@ -203,7 +201,7 @@ def generate_index(multi_filtered):
             molid = molids[mol_subid]
             ftn_subid = 0 #always default to first ftnl group
         elif b_finished_mol:
-            molids = multi_filtered.index.get_level_values(0).unique()
+            molids = multi_filtered.index.get_level_values("molid").unique()
             molnum = molids.values.size
 
             description_base = "##### new molecule  \n"
@@ -227,7 +225,7 @@ def generate_index(multi_filtered):
             ftn_subid = 0 #always default to first ftnl group
         else: #only generate new ftn index
             multi_filtered = st.session_state["prev_data"]
-            molids = multi_filtered.index.get_level_values(0).unique()
+            molids = multi_filtered.index.get_level_values("molid").unique()
             molnum = molids.values.size
             mol_subid = np.argwhere( molids == prev_molid )[0][0] #prev_mol_subid
             molid = molids[mol_subid]
@@ -243,7 +241,10 @@ def generate_index(multi_filtered):
     numdigits=len(str(molnum))
     numdigits_str = "0"+str(numdigits)
 
-    description = description_base + f"**Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n**Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `{rxn_selection}`"
+    if "rxn_selection" not in locals(): #to avoid circularity with first call before navigation bar is loaded
+        description = description_base + f"**Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n**Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `any`"
+    else:
+        description = description_base + f"**Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n**Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `{rxn_selection}`"
     st.session_state["prev_data"] = multi_filtered
     st.session_state["data_index"] = (molid, ftn_group_ids)
     st.session_state["ftn_tracking"] = (ftn_subid,num_ftnl_groups)
@@ -254,7 +255,7 @@ def generate_index(multi_filtered):
     
 def generate_index_by_matchid(multi_filtered):
     # utility
-    molids = multi.index.get_level_values(0).unique()
+    molids = multi.index.get_level_values("molid").unique()
     molnum = molids.values.size
     numdigits=len(str(molnum))
     numdigits_str = "0"+str(numdigits)
@@ -300,7 +301,7 @@ def generate_index_by_matchid(multi_filtered):
 
     # if "choose for me!", choose a random reaction
     if rxn_selection == "choose for me!":
-        rxn_types = mol_specific_data.index.get_level_values(1).unique().values
+        rxn_types = mol_specific_data.index.get_level_values("rxn_name").unique().values
         #rxn_types = [ x for x in rxn_types if not x.startswith("step")] #TMP, remove step reactions for now
         #rxn_types
         rxn_name = random.choice(rxn_types)
@@ -309,7 +310,7 @@ def generate_index_by_matchid(multi_filtered):
 
     if not rxn_name.startswith("step"): #TMP filter out step
         ftn_id = 0
-        match_totals = len(mol_specific_data.index.get_level_values(3).unique().values)
+        match_totals = len(mol_specific_data.index.get_level_values("matchid").unique().values)
         match_id = np.random.randint(0,match_totals) #chooses a random match
 
     # store and return
@@ -344,7 +345,40 @@ def characterize_substituents_by_matchid(match_specific_data):
     return evaluation,description
 
 
-# ===== Navigation Sidebar
+# Load Data
+if "prev_data" not in st.session_state: #first time through
+    multi_filtered = filter_rxn(multi,data_rxn,None)
+    st.session_state["prev_data"] = multi_filtered
+    if iterate_by_matchidx:
+        st.session_state["data_index"] = generate_index_by_matchid(multi_filtered)
+        
+    else:
+        st.session_state["data_index"] = generate_index(multi_filtered)
+else:
+    multi_filtered = st.session_state["prev_data"]
+molids = multi_filtered.index.get_level_values("molid").unique()
+molnum = molids.values.size
+
+st.write(st.session_state["data_index"])
+
+
+# ===== Navigation Sidebar and submission logic
+def submit_update():
+    # only update data after submission
+    if st.session_state["b_update_data"]:
+        multi_filtered = filter_rxn(multi,data_rxn,rxn_selection)
+        st.session_state["b_update_data"] = False
+        st.session_state["prev_data"] = multi_filtered
+    else:
+        multi_filtered = st.session_state["prev_data"]
+
+    if iterate_by_matchidx:
+        st.session_state["data_index"]= generate_index_by_matchid(multi_filtered)
+    else:
+        st.session_state["data_index"] = generate_index(multi_filtered)
+    set_update_data_flag(False)
+
+
 with st.sidebar:
     #st.write("Navigation")
     #st.markdown('<u><p class="big-font">Navigation</p><u>',unsafe_allow_html=True)
@@ -373,63 +407,43 @@ with st.sidebar:
 
     # Bulkiness
 
-    
     # Submission
     with st.form("evaluation",clear_on_submit = True):
-        st.markdown("##### Quality of this identified polymerization site (in green)?")
-        radio_quality = st.radio("rxn quality",("skip","bad","interesting","good"),label_visibility="hidden",horizontal=True)
-        text_form = st.text_area("Additional comments (use atom indices to refer to specific atoms):","")
+        #st.markdown("##### Quality of this identified polymerization site (in green)?")
+        st.markdown("**Functional group quality for...**")
+        radio_quality_list = []
 
-        submitted = st.form_submit_button("submit")
+        multi_filtered = st.session_state["prev_data"]
+        match_specific_data = multi_filtered.loc[ st.session_state["data_index"] ]
+        st.write(st.session_state["data_index"] )
+        st.write(match_specific_data)
+        rxn_types = match_specific_data.index.unique("rxn_name")
 
-        if submitted:
-            # only update data after submission
-            if st.session_state["b_update_data"]:
-                multi_filtered = filter_rxn(multi,data_rxn,rxn_selection)
-                st.session_state["b_update_data"] = False
-                st.session_state["prev_data"] = multi_filtered
-            else:
-                multi_filtered = st.session_state["prev_data"]
+        for rxn_name in rxn_types:
+            radio_quality_list.append( st.radio(rxn_name,("skip","bad","interesting","good"),horizontal=True))
+            #radio_quality = st.radio("**Ftnl group quality**",("skip","bad","interesting","good"),horizontal=True)
 
-            if iterate_by_matchidx:
-                #b = filter_rxn(multi,data_rxn,rxn_selection)
-                #st.session_state["prev_data"] = b
-                st.session_state["data_index"]= generate_index_by_matchid(multi_filtered)
-            else:
-                st.session_state["data_index"] = generate_index(multi_filtered)
-            set_update_data_flag(False)
+        text_form = st.text_area("highlighted functional group: (use atom indices to refer to specific atoms)","")
 
-    # Other comments
+        radio_quality = st.radio("**Overall monomer quality**",("skip","bad","interesting","good"),horizontal=True)
+        text_form = st.text_area("monomer comments: (use atom indices to refer to specific atoms)","")
+
+        submitted = st.form_submit_button("submit",on_click=submit_update)
+
+    # Comments/bugs
     st.markdown("---")
-    with st.form("general comments"):
+    with st.form("general comments/bugs"):
         comment_area = st.text_area("General comments?","")
         submitted = st.form_submit_button("submit")
 
 
-# ===== Test
-#rxn_name = "rop-amine"
-#a,b = filter_rxn(multi,data_rxn,rxn_selection)
-# initialize data
-if "prev_data" not in st.session_state: #first time through
-    multi_filtered = filter_rxn(multi,data_rxn,None)
-    st.session_state["prev_data"] = multi_filtered
-    if iterate_by_matchidx:
-        st.session_state["data_index"] = generate_index_by_matchid(multi_filtered)
-        
-    else:
-        st.session_state["data_index"] = generate_index(multi_filtered)
-else:
-    multi_filtered = st.session_state["prev_data"]
-
-
-molids = multi_filtered.index.get_level_values(0).unique()
-molnum = molids.values.size
-
+st.write(st.session_state["data_index"])
 
 # ===== Actual main content
 # Other
 #compound_smiles = 'c1cc(C(=O)O)c(OC(=O)C)cc1'
 #compound_smiles = 'CC[C@H](C)C=CC1=CC2=C(C(=O)[C@@]3(C(=C(C(=O)O3)C(=O)C(=CC)C)C2=CN1CCCC(=O)O)C)Cl'
+
 
 # retrieve index, molecule, match
 if iterate_by_matchidx:
@@ -474,16 +488,18 @@ else:
     highlightcolors,highlightbonds = mychem.color_ftn(mol,ftn_group_ids)
     im = mychem.highlight_draw(mol,highlightcolors,highlightbonds)
 
-
+st.session_state["data_index"]
 
 # ===== Display
 st.image(im)
 st.markdown(st.session_state["data_index_description"])
+# Submission
+#with st.form("form-ftn-specific"):
+#    st.write("Quality of this functional group")
 st.markdown(f"{evaluation}")
 checkbox_details = st.checkbox('Show substituent analysis below')
 if checkbox_details:
     st.markdown(description)
-
 
 # ===== Misc
 
