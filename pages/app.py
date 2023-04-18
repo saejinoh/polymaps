@@ -18,7 +18,7 @@ iterate_by_matchidx = False
 @st.cache_data
 def load_data():
     # functional group data
-    filename = homedir + "/../data/" + "fg_analysis_2023-04-10.csv"
+    filename = homedir + "/../../data/" + "fg_analysis_2023-04-10.csv"
     data_df = pd.read_csv(filename,index_col=False)
     #def toset(mystr):
     #   return frozenset( ast.literal_eval(mystr))
@@ -29,7 +29,7 @@ def load_data():
         multi = data_df.set_index(["molid","matchidx","rxn_name"])
 
     # functional group count data; makes initial filtering easier
-    filename = homedir + "/../data/" + "rxntypes_2023-04-10.csv"
+    filename = homedir + "/../../data/" + "rxntypes_2023-04-10.csv"
     data_rxn = pd.read_csv(filename,index_col=False)
 
     # evaluations
