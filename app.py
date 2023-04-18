@@ -222,7 +222,7 @@ def generate_index(multi_filtered):
     numdigits=len(str(molnum))
     numdigits_str = "0"+str(numdigits)
 
-    if "rxn_selection" not in locals(): #to avoid circularity during first call before navigation bar is loaded
+    if "rxn_selection" not in st.session_state: #to avoid circularity during first call before navigation bar is loaded
         description = description_base + f"**Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n**Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `any`"
     else:
         description = description_base + f"**Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n**Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `{rxn_selection}`"
@@ -334,7 +334,42 @@ with st.sidebar:
     st.markdown("# Navigation")
     st.markdown("### On next molecule, show...")
     
+    def clear_input():
+        submit_update()
+        try:
+            trial_molid = int(st.session_state.molid_input)
+            multi_filtered = st.session_state.prev_data
+            if trial_molid not in multi_filtered.index.get_level_values("molid").unique().values:
+                st.write(f"##### Input molid {st.session_state.molid_input} not in current filters. Ignoring.")
+            else: 
+                molid = trial_molid
+                molids = multi_filtered.index.get_level_values("molid").unique()
+                mol_subid = np.argwhere( molids == molid )[0][0]
+                mol_specific_data = multi_filtered.query("molid == @trial_molid")
+                num_ftnl_groups = mol_specific_data.reset_index().agg("nunique").matchidx
+                ftn_subid = 0 #default init
+                ftn_group_ids = mol_specific_data.index.get_level_values("matchidx").unique()[ftn_subid]
+                numdigits=len(str(molnum))
+                numdigits_str = "0"+str(numdigits)
+                
+                st.session_state["data_index"] = (molid, ftn_group_ids)
+                st.session_state["ftn_tracking"] = (ftn_subid,num_ftnl_groups)
+                description_base = f"##### Manually selected molecule `{trial_molid}`  \n"
+                
+                if "rxn_selection" not in st.session_state: #to avoid circularity during first call before navigation bar is loaded
+                    description = description_base + f"**Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n**Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `any`"
+                else:
+                    description = description_base + f"**Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n**Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `{rxn_selection}`"
+
+                st.session_state["data_index_description"] = description
+        except:
+            st.write(f"Input molid `{st.session_state.molid_input}` invaild, ignoring.")
+        st.session_state["molid_input"] = ""
+
+    molid_input = st.text_input("specify molid (optional)",key="molid_input",on_change=clear_input)
+
     rxn_selection = st.selectbox("reaction type",("choose for me!",*rxn_types),
+                                 key="rxn_selection",
                                  on_change = lambda: set_update_data_flag(True))
 
     iteration_selection = st.selectbox("molecule iteration mode:",
