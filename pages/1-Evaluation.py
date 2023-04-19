@@ -357,7 +357,7 @@ def characterize_substituents_by_matchid(match_specific_data):
 
 
 # ===== Load Data
-if "rxn_selection" not in st.session_state:
+if "settings_initialized" not in st.session_state:
     st.markdown("# Upon browser refresh, please revisit Settings page first.")
 
 
@@ -465,14 +465,15 @@ def submit_update(molid=None,log=True):
 
 
 def clear_input():
-    submit_update(log=False)
-    try:
-        trial_molid = int(st.session_state.molid_input)
-        update_filters()
-        generate_index(st.session_state.prev_data,trial_molid)
-    except:
-        st.markdown(f"Input molid `{st.session_state.molid_input}` invaild, ignoring.")
-    st.session_state["molid_input"] = "" #callbacks are executed before everything, so the session_state can be set *before* the input field is declared/defined.
+    if "settings_initialized" in st.session_state:
+        submit_update(log=False)
+        try:
+            trial_molid = int(st.session_state.molid_input)
+            update_filters()
+            generate_index(st.session_state.prev_data,trial_molid)
+        except:
+            st.markdown(f"Input molid `{st.session_state.molid_input}` invaild, ignoring.")
+        st.session_state["molid_input"] = "" #callbacks are executed before everything, so the session_state can be set *before* the input field is declared/defined.
 
 
 if st.session_state["b_update_data"]: #in multipage form, make sure we always update when we come back from the settings page, IF THE SETTINGS WERE CHANGED
