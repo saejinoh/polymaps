@@ -273,7 +273,7 @@ def highlight_draw(mol,highlight_colors,highlight_bonds={},wd=550,ht=350,format=
     
     # prepare drawing
     if format.lower() == "svg":
-        d = Chem.Draw.rdMolDraw2D.MolDraw2DSVG(300,300)
+        d = Chem.Draw.rdMolDraw2D.MolDraw2DSVG(wd,ht)
     else:
         d = Chem.Draw.rdMolDraw2D.MolDraw2DCairo(wd,ht)
     d.drawOptions().addAtomIndices = atomIndices
@@ -301,4 +301,6 @@ def highlight_draw(mol,highlight_colors,highlight_bonds={},wd=550,ht=350,format=
     else:
         png = d.GetDrawingText()
         return png
-    
+
+# Example of drawing to grid:
+# svg = Chem.Draw.MolsToGridImage(mols,molsPerRow=3,subImgSize=(250,250),legends=legends, useSVG=True)

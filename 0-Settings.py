@@ -4,16 +4,6 @@ import os, time
 homedir = os.path.dirname(__file__)
 
 st.set_page_config(layout="wide")
-st.markdown(
-    """
-    <style>
-    [data-testid="stSidebar"][aria-expanded="true"]{
-        max-width: 650px;
-        min-width: 550px;
-    }
-    """,
-    unsafe_allow_html=True,
-)   
 
 def persist_widget(widget,text,key,val0,action,*args,**kwargs):
     tmp_key = key + "_"

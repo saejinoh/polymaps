@@ -529,7 +529,7 @@ if iterate_by_matchidx:
     #core_bool = mychem.get_max_scaffold(mol,ftn_group_ids)
     #highlightcolors,highlightbonds = mychem.color_scaffold(mol,core_bool)
     highlightcolors,highlightbonds = mychem.color_ftn(mol,ftn_group_ids)
-    im = mychem.highlight_draw(mol,highlightcolors,highlightbonds)
+    im = mychem.highlight_draw(mol,highlightcolors,highlightbonds,format="svg")
 else:
     molid,matchidx = st.session_state["data_index"]
 
@@ -548,7 +548,7 @@ else:
 
     ftn_group_ids = ast.literal_eval(match_specific_data.index.get_level_values("matchidx")[0])
     highlightcolors,highlightbonds = mychem.color_ftn(mol,ftn_group_ids)
-    im = mychem.highlight_draw(mol,highlightcolors,highlightbonds)
+    im = mychem.highlight_draw(mol,highlightcolors,highlightbonds,format="svg")
 
 
 # ===== Display
