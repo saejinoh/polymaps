@@ -15,6 +15,7 @@ from rdkit.Chem import Draw
 import mychem
 iterate_by_matchidx = False
 
+
 @st.cache_data
 def load_data():
     # functional group data
@@ -107,15 +108,15 @@ def filter_rxn(data, data_rxn, rxn_name = None):
     if "prev_data" in st.session_state:
         # filter by MW
         inds_where_MW_range = data_rxn.loc[ 
-            (data_rxn.MW>= slider_MW[0]) & 
-            (data_rxn.MW <= slider_MW[1]) ].index.values
+            (data_rxn.MW>= st.session_state.slider_MW[0]) & 
+            (data_rxn.MW <= st.session_state.slider_MW[1]) ].index.values
 
         sub_data = sub_data.query( "molid in @inds_where_MW_range")
 
         # filter by number of functional groups
         inds_where_num_ftn_range = data_rxn.loc[ 
-            (data_rxn.num_ftn>= slider_num_ftn[0]) & 
-            (data_rxn.num_ftn <= slider_num_ftn[1]) ].index.values
+            (data_rxn.num_ftn>= st.session_state.slider_num_ftn[0]) & 
+            (data_rxn.num_ftn <= st.session_state.slider_num_ftn[1]) ].index.values
         sub_data = sub_data.query( "molid in @inds_where_num_ftn_range")
 
     # return
@@ -162,7 +163,7 @@ def generate_index(multi_filtered,trial_molid=None):
         #multi_filtered = st.session_state.prev_data
 
         if trial_molid not in multi_filtered.index.get_level_values("molid").unique().values:
-            st.write(f"##### Input molid {st.session_state.molid_input} not in current filters. Ignoring.")
+            st.markdown(f"##### Input molid {st.session_state.molid_input} not in current filters. Ignoring.")
             molid = trial_molid
             ftn_subid = st.session_state["ftn_tracking"][0]
         else: 
@@ -178,6 +179,7 @@ def generate_index(multi_filtered,trial_molid=None):
         #prev_mol_subid = st.session_state["mol_subid"]
         prev_molid = st.session_state["data_index"][0]
         prev_ftn_subid, prev_num_ftnl_groups = st.session_state["ftn_tracking"]
+
 
         if prev_molid not in multi_filtered.index.get_level_values("molid").unique():
             b_mol_out_of_set = True
@@ -207,10 +209,10 @@ def generate_index(multi_filtered,trial_molid=None):
 
             reached_last_mol = True if (current_mol_subid >= molnum - 1) else False
 
-            if iteration_selection == "random":
+            if st.session_state["iteration_selection"] == "random":
                 mol_subid = np.random.randint(0,molnum) #IMPORTANT
                 molid = molids[mol_subid]
-            elif iteration_selection == "sequential":
+            elif st.session_state["iteration_selection"] == "sequential":
                 if reached_last_mol:
                     mol_subid = 0
                     molid = molids[mol_subid]
@@ -242,7 +244,7 @@ def generate_index(multi_filtered,trial_molid=None):
     if "rxn_selection" not in st.session_state: #to avoid circularity during first call before navigation bar is loaded
         description = description_base + f"**Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n**Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `any`"
     else:
-        description = description_base + f"**Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n**Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `{rxn_selection}`"
+        description = description_base + f"**Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n**Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `{st.session_state.rxn_selection}`"
     st.session_state["prev_data"] = multi_filtered
     st.session_state["data_index"] = (molid, ftn_group_ids)
     st.session_state["ftn_tracking"] = (ftn_subid,num_ftnl_groups)
@@ -274,7 +276,7 @@ def generate_index_by_matchid(multi_filtered):
     mol_specific_data = multi.query(f"molid == {molid}")
 
     # if "choose for me!", choose a random reaction
-    if rxn_selection == "choose for me!":
+    if st.session_state.rxn_selection == "choose for me!":
         rxn_types = mol_specific_data.index.get_level_values("rxn_name").unique().values
         rxn_name = random.choice(rxn_types)
     else:
@@ -339,10 +341,13 @@ def characterize_substituents_by_matchid(match_specific_data):
     return evaluation,description
 
 
-# Load Data
+# ===== Load Data
 if "prev_data" not in st.session_state: #first time through
-    multi_filtered = filter_rxn(multi,data_rxn,None)
+    multi_filtered = filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
+    if multi_filtered.size == 0:
+        multi_filtered = multi
     st.session_state["prev_data"] = multi_filtered
+
     if iterate_by_matchidx:
         st.session_state["data_index"] = generate_index_by_matchid(multi_filtered)
         
@@ -353,20 +358,37 @@ else:
 molids = multi_filtered.index.get_level_values("molid").unique()
 molnum = molids.values.size
 
+multi_filtered0 = filter_rxn(multi,data_rxn,None)
 
-# ===== Navigation Sidebar and submission logic
+
+# ===== Sidebar and submission logic
 def update_filters():
     if st.session_state["b_update_data"]:
-        multi_filtered = filter_rxn(multi,data_rxn,rxn_selection)
+        tmp_multi_filtered = filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
+        if multi.size == 0:
+            st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to previous data set.")
+            if st.session_state["prev_data"].size == 0:
+                multi_filtered = multi_filtered0
+            else:
+                multi_filtered = st.session_state["prev_data"]
+        else:
+            multi_filtered = tmp_multi_filtered
+            if multi_filtered.size == 0:
+                st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to previous data set.")
+                multi_filtered = multi_filtered0
         st.session_state["b_update_data"] = False
         st.session_state["prev_data"] = multi_filtered
     else:
         multi_filtered = st.session_state["prev_data"]
+        if multi_filtered.size == 0:
+            st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to previous data set.")
+            multi_filtered = multi_filtered0
     set_update_data_flag(False)
 
 def submit_update(molid=None):
     # only update data after submission
     update_filters()
+    multi_filtered = st.session_state["prev_data"]
 
     # update index
     if iterate_by_matchidx:
@@ -384,34 +406,16 @@ def clear_input():
         update_filters()
         generate_index(st.session_state.prev_data,trial_molid)
     except:
-        st.write(f"Input molid `{st.session_state.molid_input}` invaild, ignoring.")
+        st.markdown(f"Input molid `{st.session_state.molid_input}` invaild, ignoring.")
     st.session_state["molid_input"] = "" #callbacks are executed before everything, so the session_state can be set *before* the input field is declared/defined.
 
+
+if st.session_state["b_update_data"]: #in multipage form, make sure we always update when we come back from the settings page, IF THE SETTINGS WERE CHANGED
+    submit_update()
+
+
 with st.sidebar:
-    st.markdown("# Navigation")
-    st.markdown("### On next molecule, show...")
-
     molid_input = st.text_input("specify molid (optional)",key="molid_input",on_change=clear_input)
-
-    rxn_selection = st.selectbox("reaction type",("choose for me!",*rxn_types),
-                                 key="rxn_selection",
-                                 on_change = lambda: set_update_data_flag(True))
-
-    iteration_selection = st.selectbox("molecule iteration mode:",
-        ("random","sequential"),index=1, on_change = lambda: set_update_data_flag(True), key="iteration_selection")
-
-    # MW
-    slider_MW = st.slider("MW range",0.,st.session_state.max_MW,(10.,st.session_state.max_MW),
-                          on_change = lambda: set_update_data_flag(True),
-                          key="slider_MW")
-    
-    # Simplicity/Complexity
-    # (# of polymerizations identified, # functional groups, # subsitutents)
-    slider_num_ftn = st.slider("number functional groups",1,st.session_state.max_numftn,(1,st.session_state.max_numftn),
-                               on_change = lambda: set_update_data_flag(True),
-                               key="slider_num_ftn")
-
-    # Bulkiness
 
     # Submission
     with st.form("evaluation",clear_on_submit = True):
@@ -434,11 +438,6 @@ with st.sidebar:
 
         submitted = st.form_submit_button("submit",on_click=submit_update)
 
-    # Comments/bugs
-    st.markdown("---")
-    with st.form("general comments/bugs"):
-        comment_area = st.text_area("General comments?","")
-        submitted = st.form_submit_button("submit")
 
 # ===== Actual main content
 # retrieve index, molecule, match
@@ -488,6 +487,7 @@ st.markdown(f"{evaluation}")
 checkbox_details = st.checkbox('Show substituent analysis below')
 if checkbox_details:
     st.markdown(description)
+
 
 # ===== Misc
 
