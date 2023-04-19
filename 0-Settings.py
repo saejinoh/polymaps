@@ -6,7 +6,30 @@ homedir = os.path.dirname(__file__)
 st.set_page_config(layout="wide")
 st.session_state["settings_initialized"] = True
 
-def persist_widget(widget,text,key,val0,action,*args,**kwargs):
+def persist_widget(widget,*args,key=None,val0=None,action=lambda: None,**kwargs):
+    """Persist a widget's state by using a dummy key and a callback to ensure syncing of values.
+
+    Args:
+        widget (_type_): _description_
+        key (_type_): _description_
+        val0 (_type_): _description_
+        action (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    
+    Notes:
+        syntax is minimally invasive:
+        ```
+        persist_widget(widget, *(args as would be usually used), **(kwargs) as would be usually used )
+        ```
+        in addition, must provide the mandatory `key` and `val0` arguments explicitly by name instead of positionally.
+    """
+    if key is None:
+        raise ValueError("must provide a key to persist the widget")
+    if val0 is None:
+        raise ValueError("must provide initial value of widget, via val0 argument")
+
     tmp_key = key + "_"
     # set up keys
     if key not in st.session_state:
@@ -20,15 +43,19 @@ def persist_widget(widget,text,key,val0,action,*args,**kwargs):
 
     # set up callback() and return
     if widget in [st.button, st.download_button, st.form_submit_button]:
+        # technically shouldn't ever be persisting a button...
+        raise ValueError("Does it really make sense to persist a button value?")
+        #def callback():
+        #    st.session_state[key] = st.session_state[tmp_key]
+        #    action()
+        #return widget(*args,key=tmp_key,on_click=callback,**kwargs)
+    else: #should be `on_change``
+        action = kwargs["on_change"]
         def callback():
             st.session_state[key] = st.session_state[tmp_key]
             action()
-        return widget(text,*args,key=tmp_key,on_click=callback,**kwargs)
-    else:
-        def callback():
-            st.session_state[key] = st.session_state[tmp_key]
-            action()
-        return widget(text,*args,key=tmp_key,on_change=callback,**kwargs)
+        kwargs["on_change"] = callback
+        return widget(*args,key=tmp_key,**kwargs)
     
 # ===== Setup =====
 filename = homedir + "/../data/" + "rxntypes_2023-04-10.csv"
@@ -63,7 +90,7 @@ if "eval_general" not in st.session_state:
 st.markdown("# Welcome!")
 user_info = persist_widget( st.text_input, "email",
                                key = "userinfo", val0="",
-                               action = lambda: None)
+                               on_change = lambda: None)
 
 # ===== Navigation =====
 #st.markdown("## Navigation & Settings")
@@ -72,27 +99,27 @@ user_info = persist_widget( st.text_input, "email",
 rxn_selection = persist_widget( st.selectbox, "reaction type",
                                key = "rxn_selection", val0 = "choose for me!",
                                options = ("choose for me!",*rxn_types),
-                               action = lambda: set_update_data_flag(True))
+                               on_change = lambda: set_update_data_flag(True))
 
 iteration_selection = persist_widget( st.selectbox,
                                      "molecule iteration mode:",
                                      options = ("random","sequential"),
                                      key="iteration_selection",
                                      val0 = "sequential",
-                                     action = lambda: set_update_data_flag(True))
+                                     on_change = lambda: set_update_data_flag(True))
 
 # MW
 slider_MW = persist_widget(st.slider, "MW range",
                             min_value = 0., max_value = st.session_state.max_MW,
                             key = "slider_MW",
                             val0 = (10.,st.session_state.max_MW),
-                            action= lambda: set_update_data_flag(True) )
+                            on_change = lambda: set_update_data_flag(True) )
 
 # Simplicity/Complexity
 # (# of polymerizations identified, # functional groups, # subsitutents)
 slider_num_ftn = persist_widget(st.slider,"number functional groups",
                             min_value = 1, max_value = st.session_state.max_numftn,
-                            action = lambda: set_update_data_flag(True),
+                            on_change = lambda: set_update_data_flag(True),
                             key="slider_num_ftn",
                             val0 = (1,st.session_state.max_numftn) )
 
@@ -117,6 +144,9 @@ def log_general_comment():
 
     st.session_state["eval_general"] = pd.concat([ st.session_state["eval_general"], 
                                                     pd.DataFrame([comment_dict]) ], ignore_index=True)
+    
+    # Save
+    st.session_state["eval_general"].to_csv("eval_general.csv",index=False)
 
 if "userinfo" not in st.session_state \
     or st.session_state["userinfo"] in ["",None] \
