@@ -5,7 +5,7 @@ from rdkit.Chem import Draw
 
 st.markdown("# Results")
 
-if "prev_data" not in st.session_state:
+if "prev_data" not in st.session_state or not "settings_initialized" in st.session_state:
     st.markdown("No molecules evaluated yet.")
 else:
     data = st.session_state["eval_mol"]
@@ -30,7 +30,7 @@ else:
 st.markdown("-----")
 st.markdown("optional diagnostics (for debugging)")
 showlog = st.checkbox("see full user log")
-if showlog:
+if showlog and "settings_initialized" in st.session_state:
     st.session_state["eval_mol"]
     st.session_state["eval_details"]
     st.session_state["eval_general"]

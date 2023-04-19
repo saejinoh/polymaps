@@ -119,7 +119,7 @@ def filter_rxn(data, data_rxn, rxn_name = None):
         sub_data = data.query("rxn_name in @rxns_of_interest")
         #sub_data = sub_data[ sub_data.index.get_level_values(rxn_name).isin([rxn_name])] 
 
-    if "prev_data" in st.session_state:
+    if "prev_data" in st.session_state and "slider_MW" in st.session_state:
         # filter by MW
         inds_where_MW_range = data_rxn.loc[ 
             (data_rxn.MW>= st.session_state.slider_MW[0]) & 
@@ -177,9 +177,10 @@ def generate_index(multi_filtered,trial_molid=None):
         #multi_filtered = st.session_state.prev_data
 
         if trial_molid not in multi_filtered.index.get_level_values("molid").unique().values:
-            st.markdown(f"##### Input molid {st.session_state.molid_input} not in current filters. Ignoring.")
+            st.markdown(f"##### Input molid `{st.session_state.molid_input}` not in current filters. Ignoring.")
             molid = trial_molid
             ftn_subid = st.session_state["ftn_tracking"][0]
+            description_base = ""
         else: 
             molid = trial_molid
             molids = multi_filtered.index.get_level_values("molid").unique()
@@ -250,7 +251,7 @@ def generate_index(multi_filtered,trial_molid=None):
     mol_specific_data = multi_filtered.query("molid == @molid")
     num_ftnl_groups = mol_specific_data.reset_index().agg("nunique").matchidx
     ftn_group_ids = mol_specific_data.index.get_level_values("matchidx").unique()[ftn_subid]
-            
+    
     # Save and return
     numdigits=len(str(molnum))
     numdigits_str = "0"+str(numdigits)
@@ -356,8 +357,15 @@ def characterize_substituents_by_matchid(match_specific_data):
 
 
 # ===== Load Data
+if "rxn_selection" not in st.session_state:
+    st.markdown("# Upon browser refresh, please revisit Settings page first.")
+
+
 if "prev_data" not in st.session_state: #first time through
-    multi_filtered = filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
+    if "rxn_selection" in st.session_state:
+        multi_filtered = filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
+    else:
+        multi_filtered = filter_rxn(multi,data_rxn,None)
     if multi_filtered.size == 0:
         multi_filtered = multi
     st.session_state["prev_data"] = multi_filtered
@@ -457,7 +465,7 @@ def submit_update(molid=None,log=True):
 
 
 def clear_input():
-    submit_update()
+    submit_update(log=False)
     try:
         trial_molid = int(st.session_state.molid_input)
         update_filters()
@@ -475,40 +483,45 @@ with st.sidebar:
     molid_input = st.text_input("specify molid (optional)",key="molid_input",on_change=clear_input)
 
     # Submission
-    with st.form("evaluation",clear_on_submit = True):
-        st.markdown("**Functional group quality for...**")
-        radio_quality_list = []
+    if "userinfo" not in st.session_state \
+        or st.session_state["userinfo"] in ["",None] \
+        or "@" not in st.session_state["userinfo"]:
+        st.markdown("**Enter a valid e-mail on Settings page to submit evaluations.**")
+    else:
+        with st.form("evaluation",clear_on_submit = True):
+            st.markdown("**Functional group quality for...**")
+            radio_quality_list = []
 
-        multi_filtered = st.session_state["prev_data"]
-        match_specific_data = multi_filtered.loc[ st.session_state["data_index"] ]
+            multi_filtered = st.session_state["prev_data"]
+            match_specific_data = multi_filtered.loc[ st.session_state["data_index"] ]
 
-        rxn_types = match_specific_data.index.unique("rxn_name")
+            rxn_types = match_specific_data.index.unique("rxn_name")
 
-        st.session_state["rxns_for_this_ftn_group"] = []
-        for rxn_name in rxn_types:
-            keyname = "rating_" + rxn_name
-            st.session_state["rxns_for_this_ftn_group"].append(keyname)
-            radio_quality_list.append( st.radio(rxn_name + " polymerization",
+            st.session_state["rxns_for_this_ftn_group"] = []
+            for rxn_name in rxn_types:
+                keyname = "rating_" + rxn_name
+                st.session_state["rxns_for_this_ftn_group"].append(keyname)
+                radio_quality_list.append( st.radio(rxn_name + " polymerization",
+                                                    ("skip","bad","interesting","good"),
+                                                    horizontal=True,
+                                                    key = keyname)
+                )
+                #radio_quality = st.radio("**Ftnl group quality**",("skip","bad","interesting","good"),horizontal=True)
+            radio_quality_list.append( st.radio("other polymerization",
                                                 ("skip","bad","interesting","good"),
                                                 horizontal=True,
-                                                key = keyname)
+                                                key="rating_other") 
             )
-            #radio_quality = st.radio("**Ftnl group quality**",("skip","bad","interesting","good"),horizontal=True)
-        radio_quality_list.append( st.radio("other polymerization",
-                                            ("skip","bad","interesting","good"),
-                                            horizontal=True,
-                                            key="rating_other") 
-        )
-        st.session_state["rxns_for_this_ftn_group"].append("rating_other")
+            st.session_state["rxns_for_this_ftn_group"].append("rating_other")
 
 
-        text_form = st.text_area("comments on the highlighted functional group: (use atom indices if needed)","",key="comments_ftn")
+            text_form = st.text_area("comments on the highlighted functional group: (use atom indices if needed)","",key="comments_ftn")
 
-        radio_quality = st.radio("**Overall monomer quality**",("no comment","bad","interesting","good"),horizontal=True,key="rating_mol")
-        text_form = st.text_area("comments on the monomer: (use atom indices if needed)","",key="comments_mol")
+            radio_quality = st.radio("**Overall monomer quality**",("no comment","bad","interesting","good"),horizontal=True,key="rating_mol")
+            text_form = st.text_area("comments on the monomer: (use atom indices if needed)","",key="comments_mol")
 
-        submitted = st.form_submit_button("submit",on_click=submit_update)
-
+            submitted = st.form_submit_button("submit",on_click=submit_update)
+    #end if userinfo clause
 
 # ===== Actual main content
 # retrieve index, molecule, match

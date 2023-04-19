@@ -4,6 +4,7 @@ import os, time
 homedir = os.path.dirname(__file__)
 
 st.set_page_config(layout="wide")
+st.session_state["settings_initialized"] = True
 
 def persist_widget(widget,text,key,val0,action,*args,**kwargs):
     tmp_key = key + "_"
@@ -117,9 +118,13 @@ def log_general_comment():
     st.session_state["eval_general"] = pd.concat([ st.session_state["eval_general"], 
                                                     pd.DataFrame([comment_dict]) ], ignore_index=True)
 
-with st.form("general comments/bugs",clear_on_submit=True):
-    comment_area = st.text_area("General comments?","",key="comments_general")
-
-    submitted = st.form_submit_button("submit",on_click=log_general_comment)
+if "userinfo" not in st.session_state \
+    or st.session_state["userinfo"] in ["",None] \
+    or "@" not in st.session_state["userinfo"]:
+    st.markdown("##### Please enter a valid e-mail above in order to submit general comments")
+else:
+    with st.form("general comments/bugs",clear_on_submit=True):
+        comment_area = st.text_area("General comments?","",key="comments_general")
+        submitted = st.form_submit_button("submit",on_click=log_general_comment)
     
     
