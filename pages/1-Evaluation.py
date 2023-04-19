@@ -3,7 +3,21 @@ import streamlit as st
 import time
 import os
 import ast
+import copy
 homedir = os.path.dirname(__file__)
+
+st.set_page_config(layout="wide")
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebar"][aria-expanded="true"]{
+        max-width: 650px;
+        min-width: 550px;
+    }
+    """,
+    unsafe_allow_html=True,
+)   
+
 
 # Analysis imports
 import random
@@ -385,7 +399,52 @@ def update_filters():
             multi_filtered = multi_filtered0
     set_update_data_flag(False)
 
-def submit_update(molid=None):
+
+def log_evaluation():
+    """Log user evaluation of molecule
+
+    Notes:
+        Requires certain session_state variables to be defined already:
+        - userinfo
+        - 
+    """
+    #"molid","molidx","smiles","userinfo","timestamp","comments_ftn","comments_mol","rating_mol"
+    #"molid","molidx","smiles","userinfo","timestamp","rxn_name","rating"
+
+    root_dict = {}
+    molid, molidx = st.session_state["data_index"]
+    root_dict["molid"],root_dict["molidx"] = molid, molidx
+    root_dict["smiles"] = data_rxn.loc[molid].smiles
+    root_dict["userinfo"] = st.session_state["userinfo"]
+    root_dict["timestamp"] = pd.Timestamp(time.time(),unit="s")
+
+    # comments
+    comment_dict = copy.copy(root_dict)
+    comment_dict["comments_ftn"] = st.session_state["comments_ftn"]
+    comment_dict["comments_mol"] = st.session_state["comments_mol"]
+    comment_dict["rating_mol"] = st.session_state["rating_mol"]
+    st.session_state["eval_mol"] = pd.concat([ st.session_state["eval_mol"], 
+                                                pd.DataFrame([comment_dict]) ],
+                                                ignore_index=True)
+
+    # rxn-specific data
+    rxn_ratings = []
+    for rxn_name_entry_in_session_state in st.session_state["rxns_for_this_ftn_group"]:
+        rxn_rating_dict = copy.copy(root_dict)
+        rxn_name = rxn_name_entry_in_session_state.removeprefix("rating_")
+        rxn_rating_dict["rxn_name"] = rxn_name
+        rxn_rating_dict["rating"] = st.session_state[rxn_name_entry_in_session_state]
+
+        rxn_ratings.append(rxn_rating_dict)
+    st.session_state["eval_details"] = pd.concat([ st.session_state["eval_details"], 
+                                                pd.DataFrame(rxn_ratings) ],
+                                                ignore_index=True)
+
+def submit_update(molid=None,log=True):
+    # log answers
+    if log:
+        log_evaluation()
+
     # only update data after submission
     update_filters()
     multi_filtered = st.session_state["prev_data"]
@@ -395,9 +454,7 @@ def submit_update(molid=None):
         st.session_state["data_index"]= generate_index_by_matchid(multi_filtered)
     else:
         st.session_state["data_index"] = generate_index(multi_filtered,molid)
-    
-def save_results():
-    pass
+
 
 def clear_input():
     submit_update()
@@ -411,7 +468,7 @@ def clear_input():
 
 
 if st.session_state["b_update_data"]: #in multipage form, make sure we always update when we come back from the settings page, IF THE SETTINGS WERE CHANGED
-    submit_update()
+    submit_update(log=False)
 
 
 with st.sidebar:
@@ -427,14 +484,28 @@ with st.sidebar:
 
         rxn_types = match_specific_data.index.unique("rxn_name")
 
+        st.session_state["rxns_for_this_ftn_group"] = []
         for rxn_name in rxn_types:
-            radio_quality_list.append( st.radio(rxn_name,("skip","bad","interesting","good"),horizontal=True))
+            keyname = "rating_" + rxn_name
+            st.session_state["rxns_for_this_ftn_group"].append(keyname)
+            radio_quality_list.append( st.radio(rxn_name + " polymerization",
+                                                ("skip","bad","interesting","good"),
+                                                horizontal=True,
+                                                key = keyname)
+            )
             #radio_quality = st.radio("**Ftnl group quality**",("skip","bad","interesting","good"),horizontal=True)
+        radio_quality_list.append( st.radio("other polymerization",
+                                            ("skip","bad","interesting","good"),
+                                            horizontal=True,
+                                            key="rating_other") 
+        )
+        st.session_state["rxns_for_this_ftn_group"].append("rating_other")
 
-        text_form = st.text_area("highlighted functional group: (use atom indices to refer to specific atoms)","")
 
-        radio_quality = st.radio("**Overall monomer quality**",("skip","bad","interesting","good"),horizontal=True)
-        text_form = st.text_area("monomer comments: (use atom indices to refer to specific atoms)","")
+        text_form = st.text_area("comments on the highlighted functional group: (use atom indices if needed)","",key="comments_ftn")
+
+        radio_quality = st.radio("**Overall monomer quality**",("no comment","bad","interesting","good"),horizontal=True,key="rating_mol")
+        text_form = st.text_area("comments on the monomer: (use atom indices if needed)","",key="comments_mol")
 
         submitted = st.form_submit_button("submit",on_click=submit_update)
 

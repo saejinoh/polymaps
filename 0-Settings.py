@@ -1,7 +1,19 @@
 import streamlit as st
 import pandas as pd
-import os
+import os, time
 homedir = os.path.dirname(__file__)
+
+st.set_page_config(layout="wide")
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebar"][aria-expanded="true"]{
+        max-width: 650px;
+        min-width: 550px;
+    }
+    """,
+    unsafe_allow_html=True,
+)   
 
 def persist_widget(widget,text,key,val0,action,*args,**kwargs):
     tmp_key = key + "_"
@@ -34,8 +46,6 @@ rxn_types = data_rxn.columns
 # TMP: eliminate step reactions
 rxn_types = [x for x in rxn_types if not x.startswith("step") and x != "smiles"]
 
-
-st.markdown("# Welcome!")
 if "b_update_data" not in st.session_state:
     st.session_state["b_update_data"] = False
 def set_update_data_flag(flag):
@@ -47,7 +57,22 @@ if "max_numftn" not in st.session_state:
     st.session_state["max_numftn"] = int(data_rxn.num_ftn.max())
 
 if "data_index" not in st.session_state:
-    st.session_state["data_index"] = ("0","simple")
+    st.session_state["data_index"] = (0,"(0,)")
+
+if "eval_details" not in st.session_state:
+    #store mol-level under rxn_name = "general"
+    st.session_state["eval_details"] = pd.DataFrame(columns=["molid","molidx","rxn_name","smiles","userinfo","timestamp","rating","comments"])
+if "eval_mol" not in st.session_state:
+    st.session_state["eval_mol"] = pd.DataFrame(columns=["molid","molidx","smiles","userinfo","timestamp","comments_ftn","comments_mol","rating_mol"])
+if "eval_general" not in st.session_state:
+    st.session_state["eval_general"] = pd.DataFrame(columns=["molid","molidx","smiles","userinfo","timestamp","comments_general"])
+
+
+# ===== ===== BEGIN LAYOUT ===== =====
+st.markdown("# Welcome!")
+user_info = persist_widget( st.text_input, "email",
+                               key = "userinfo", val0="",
+                               action = lambda: None)
 
 # ===== Navigation =====
 #st.markdown("## Navigation & Settings")
@@ -85,7 +110,21 @@ slider_num_ftn = persist_widget(st.slider,"number functional groups",
 # ===== Comments =====
 # Comments/bugs
 st.markdown("---")
-with st.form("general comments/bugs"):
+with st.form("general comments/bugs",clear_on_submit=True):
     comment_area = st.text_area("General comments?","")
-    submitted = st.form_submit_button("submit")
+
+    def log_general_comment():
+        comment_dict = {}
+        molid, molidx = st.session_state["data_index"]
+        comment_dict["molid"],comment_dict["molidx"] = molid, molidx
+        comment_dict["smiles"] = data_rxn.loc[molid].smiles
+        comment_dict["userinfo"] = st.session_state["userinfo"]
+        comment_dict["timestamp"] = pd.Timestamp(time.time(),unit="s")
+        comment_dict["comments_general"] = comment_area
+
+        st.session_state["eval_general"] = pd.concat([ st.session_state["eval_general"], 
+                                                      pd.DataFrame([comment_dict]) ], ignore_index=True)
+
+    submitted = st.form_submit_button("submit",on_click=log_general_comment())
+    
     
