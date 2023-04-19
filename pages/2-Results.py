@@ -26,6 +26,14 @@ else:
     st.markdown(f"### `{len(mols)}`/`{molids.size}` molecules were rated as `interesting` or `good`:")
     st.image(svg)
 
+    # Download results
+    user_file = f"eval_mol_{st.session_state['userinfo']}.csv"
+    #st.session_state["eval_mol"].to_csv(user_file,index=False)
+    st.download_button("Download all molecules evaluated",
+                       st.session_state["eval_mol"].to_csv(index=False).encode("utf-8"),
+                       file_name = user_file
+    )
+
 # Diagnostic stuff
 st.markdown("-----")
 st.markdown("optional diagnostics (for debugging)")
