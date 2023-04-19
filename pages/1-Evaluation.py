@@ -448,6 +448,12 @@ def log_evaluation():
                                                 pd.DataFrame(rxn_ratings) ],
                                                 ignore_index=True)
 
+    # saving
+    st.session_state["eval_mol"].to_csv("eval_mol.csv",index=False)
+    st.session_state["eval_details"].to_csv("eval_details.csv",index=False)
+
+
+
 def submit_update(molid=None,log=True):
     # log answers
     if log:
