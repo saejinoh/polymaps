@@ -5,7 +5,17 @@ homedir = os.path.dirname(__file__)
 
 st.set_page_config(layout="wide")
 st.session_state["settings_initialized"] = True
+#st.secrets["gcp_service_account"]
 
+# database connection
+import gspread_pdlite as gspdl
+@st.cache_resource
+def load_sheet():
+    sheet = gspdl.open_sheet(st.secrets.data.google_key, st.secrets["gcp_service_account"])
+    return sheet
+sheet = load_sheet()
+
+# utilities
 def persist_widget(widget,*args,key=None,val0=None,action=lambda: None,**kwargs):
     """Persist a widget's state by using a dummy key and a callback to ensure syncing of values.
 
@@ -147,6 +157,10 @@ def log_general_comment():
     
     # Save
     st.session_state["eval_general"].to_csv("eval_general.csv",index=False)
+    st.write(pd.Series(comment_dict))
+    st.write(pd.DataFrame([comment_dict]))
+    ws    = sheet.worksheet( st.secrets.data.name_general )
+    gspdl.worksheet_append( ws, pd.Series(comment_dict) )
 
 if "userinfo" not in st.session_state \
     or st.session_state["userinfo"] in ["",None] \

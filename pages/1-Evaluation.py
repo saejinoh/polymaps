@@ -18,6 +18,14 @@ st.markdown(
     unsafe_allow_html=True,
 )   
 
+# database connection
+import gspread_pdlite as gspdl
+@st.cache_resource
+def load_sheet():
+    sheet = gspdl.open_sheet(st.secrets.data.google_key, st.secrets["gcp_service_account"])
+    return sheet
+sheet = load_sheet()
+
 
 # Analysis imports
 import random
@@ -431,8 +439,9 @@ def log_evaluation():
     comment_dict["comments_ftn"] = st.session_state["comments_ftn"]
     comment_dict["comments_mol"] = st.session_state["comments_mol"]
     comment_dict["rating_mol"] = st.session_state["rating_mol"]
+    comment_dict_df = pd.DataFrame([comment_dict])
     st.session_state["eval_mol"] = pd.concat([ st.session_state["eval_mol"], 
-                                                pd.DataFrame([comment_dict]) ],
+                                                 comment_dict_df],
                                                 ignore_index=True)
 
     # rxn-specific data
@@ -444,15 +453,20 @@ def log_evaluation():
         rxn_rating_dict["rating"] = st.session_state[rxn_name_entry_in_session_state]
 
         rxn_ratings.append(rxn_rating_dict)
+    rxn_ratings_dict_df = pd.DataFrame(rxn_ratings)
     st.session_state["eval_details"] = pd.concat([ st.session_state["eval_details"], 
-                                                pd.DataFrame(rxn_ratings) ],
+                                                rxn_ratings_dict_df ],
                                                 ignore_index=True)
 
     # saving
     st.session_state["eval_mol"].to_csv("eval_mol.csv",index=False)
     st.session_state["eval_details"].to_csv("eval_details.csv",index=False)
 
-
+    ws = sheet.worksheet(st.secrets.data.name_mol)
+    gspdl.worksheet_append( ws, comment_dict_df )
+    ws = sheet.worksheet(st.secrets.data.name_details)
+    gspdl.worksheet_append( ws, rxn_ratings_dict_df )
+    
 
 def submit_update(molid=None,log=True):
     # log answers
@@ -468,7 +482,6 @@ def submit_update(molid=None,log=True):
         st.session_state["data_index"]= generate_index_by_matchid(multi_filtered)
     else:
         st.session_state["data_index"] = generate_index(multi_filtered,molid)
-
 
 def clear_input():
     if "settings_initialized" in st.session_state:
