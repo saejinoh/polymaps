@@ -31,7 +31,7 @@ def to_num(x_str, else_str=False):
         e.g. what if there are numpy or pandas ints/floats in there?
         hard to check...
     """
-    number_types = (int,float,pd.np.int64,pd.pd.int32,pd.np.float64,pd.np.float32)
+    number_types = (int,float,pd.np.int64,pd.np.int32,pd.np.float64,pd.np.float32)
     if isinstance(x_str,number_types):
         return x_str
     elif isinstance(x_str,str):
@@ -91,7 +91,8 @@ def urlfy(sheet_id,sheet_name=None,gid=None):
     return url
 
 def url_to_df(url):
-    df = pd.read_csv(url, dtype=str).fillna("")
+    #df = pd.read_csv(url, dtype=str).fillna("")
+    df = pd.read_csv(url).fillna("")
     return df
 
 # usage is two lines:
