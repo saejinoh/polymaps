@@ -407,7 +407,7 @@ else:
     multi_filtered = st.session_state["prev_data"]
 molids = multi_filtered.index.get_level_values("molid").unique()
 molnum = molids.values.size
-
+st.write(data_rxn.columns)
 multi_filtered0 = filter_rxn(multi,data_rxn,None)
 
 
