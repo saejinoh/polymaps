@@ -72,6 +72,7 @@ def persist_widget(widget,*args,key=None,val0=None,action=lambda: None,**kwargs)
 #data_rxn = pd.read_csv(filename,index_col=False)
 url = gspdl.urlfy(st.secrets.data.data_rxn_key)
 data_rxn = gspdl.url_to_df(url)
+st.write(type(data_rxn.MW.iloc[0]))
 
 rxn_types = data_rxn.columns
 # TMP: eliminate step reactions
