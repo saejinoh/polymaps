@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 import os, time
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
 homedir = os.path.dirname(__file__)
 
 st.set_page_config(layout="wide")
@@ -165,8 +168,7 @@ def log_general_comment():
     
     # Save
     st.session_state["eval_general"].to_csv("eval_general.csv",index=False)
-    st.write(pd.Series(comment_dict))
-    st.write(pd.DataFrame([comment_dict]))
+
     ws    = sheet.worksheet( st.secrets.data.name_general )
     gspdl.worksheet_append( ws, pd.Series(comment_dict) )
 
@@ -190,11 +192,10 @@ def load_data():
     #filename = homedir + "/../../data/" + "fg_analysis_2023-04-21.csv"
     #data_df = pd.read_csv(filename,index_col=False)
     url = gspdl.urlfy(st.secrets.data.fgroups_key)
-    st.write(url)
     #data_df = gspdl.url_to_df(url)
     sheet = gspdl.open_sheet(st.secrets.data.fgroups_key,st.secrets["gcp_service_account"])
     ws = sheet.get_worksheet(0)
-    st.write(ws)
+
     data_df = gspdl.worksheet_to_df(ws)
 
     #def toset(mystr):
@@ -210,25 +211,23 @@ def load_data():
 
     # evaluations
     # evaluate #ftnl groups identified
-    if "num_ftn" not in data_rxn.index:
+    if "num_ftn" not in data_rxn.columns:
         data_rxn["num_ftn"] = 0.
 
         num_ftn = multi.reset_index().set_index("molid").groupby(["molid"]).agg("nunique").matchidx
         data_rxn.loc[multi.index.unique("molid"),"num_ftn"] = num_ftn
 
     # evaluate MW
-    if "MW" not in data_rxn.index:
+    if "MW" not in data_rxn.columns:
         data_rxn["MW"] = 0.
         def get_MW(row):
             mol = Chem.MolFromSmiles(row.smiles)
-            row.MW = Chem.Descriptors.MolWt(mol)
+            row.MW = Descriptors.MolWt(mol)
             return row
         data_rxn = data_rxn.apply(get_MW,axis=1)
     
     return multi,data_rxn
 
-multi,data_rxn = load_data()
-st.write(data_rxn.columns)
 if "base_data" not in st.session_state:
     multi,data_rxn = load_data()
     st.session_state["base_data"] = (multi,data_rxn)

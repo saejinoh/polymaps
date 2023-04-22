@@ -35,6 +35,7 @@ import random
 import numpy as np
 import pandas as pd
 from rdkit import Chem
+from rdkit.Chem import Descriptors
 from rdkit.Chem import rdChemReactions
 from rdkit.Chem import Draw
 import mychem
@@ -73,28 +74,29 @@ def load_data():
 
     # evaluations
     # evaluate #ftnl groups identified
-    if "num_ftn" not in data_rxn.index:
+    if "num_ftn" not in data_rxn.columns:
         data_rxn["num_ftn"] = 0.
 
         num_ftn = multi.reset_index().set_index("molid").groupby(["molid"]).agg("nunique").matchidx
         data_rxn.loc[multi.index.unique("molid"),"num_ftn"] = num_ftn
 
     # evaluate MW
-    if "MW" not in data_rxn.index:
+    if "MW" not in data_rxn.columns:
         data_rxn["MW"] = 0.
         def get_MW(row):
             mol = Chem.MolFromSmiles(row.smiles)
-            row.MW = Chem.Descriptors.MolWt(mol)
+            row.MW = Descriptors.MolWt(mol)
             return row
         data_rxn = data_rxn.apply(get_MW,axis=1)
-    
+
     return multi,data_rxn
 
-multi,data_rxn = load_data()
+
 if "base_data" not in st.session_state:
     multi,data_rxn = load_data()
     st.session_state["base_data"] = (multi,data_rxn)
-
+else:
+    multi,data_rxn = st.session_state["base_data"]
 
 # Key variable initializations
 if "max_MW" not in st.session_state:
@@ -407,7 +409,7 @@ else:
     multi_filtered = st.session_state["prev_data"]
 molids = multi_filtered.index.get_level_values("molid").unique()
 molnum = molids.values.size
-st.write(data_rxn.columns)
+
 multi_filtered0 = filter_rxn(multi,data_rxn,None)
 
 
