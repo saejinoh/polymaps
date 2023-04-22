@@ -21,10 +21,12 @@ else:
             smiles.append( tmp_data.iloc[0].smiles )
             mols.append( Chem.MolFromSmiles(smiles[-1]) )
             legends.append( f"{str(molid)}" )
+    
     svg = Chem.Draw.MolsToGridImage(mols,molsPerRow=3,subImgSize=(250,250),legends=legends, useSVG=True)
 
     st.markdown(f"### `{len(mols)}`/`{molids.size}` molecules were rated as `interesting` or `good`:")
-    st.image(svg)
+    if len(mols) > 0:
+        st.image(svg)
 
     # Download results
     user_file = f"eval_mol_{st.session_state['userinfo']}.csv"
