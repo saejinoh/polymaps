@@ -50,11 +50,11 @@ def load_data():
     #filename = homedir + "/../../data/" + "fg_analysis_2023-04-21.csv"
     #data_df = pd.read_csv(filename,index_col=False)
     url = gspdl.urlfy(st.secrets.data.fgroups_key)
-    st.write(url)
+    #st.write(url)
     #data_df = gspdl.url_to_df(url)
     sheet = gspdl.open_sheet(st.secrets.data.fgroups_key,st.secrets["gcp_service_account"])
     ws = sheet.get_worksheet(0)
-    st.write(ws)
+    #st.write(ws)
     data_df = gspdl.worksheet_to_df(ws)
 
     #def toset(mystr):
