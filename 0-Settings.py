@@ -68,8 +68,11 @@ def persist_widget(widget,*args,key=None,val0=None,action=lambda: None,**kwargs)
         return widget(*args,key=tmp_key,**kwargs)
     
 # ===== Setup =====
-filename = homedir + "/../data/" + "rxntypes_2023-04-10.csv"
-data_rxn = pd.read_csv(filename,index_col=False)
+#filename = homedir + "/../data/" + "rxntypes_2023-04-10.csv"
+#data_rxn = pd.read_csv(filename,index_col=False)
+url = gspdl.urlfy(st.secrets.data.data_rxn_key)
+data_rxn = gspdl.url_to_df(url)
+
 rxn_types = data_rxn.columns
 # TMP: eliminate step reactions
 rxn_types = [x for x in rxn_types if not x.startswith("step") and x != "smiles"]
