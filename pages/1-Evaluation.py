@@ -41,8 +41,11 @@ import mychem
 iterate_by_matchidx = False
 
 
-@st.cache_data
+@st.cache_data(ttl=600)
 def load_data():
+    if "base_data" in st.session_state:
+        return st.session_state["base_data"][0], st.session_state["base_data"][0]
+
     # functional group data
     #filename = homedir + "/../../data/" + "fg_analysis_2023-04-21.csv"
     #data_df = pd.read_csv(filename,index_col=False)

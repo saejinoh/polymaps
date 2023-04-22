@@ -85,7 +85,6 @@ def set_update_data_flag(flag):
 
 if "max_MW" not in st.session_state:
     st.session_state["max_MW"] = float(data_rxn.MW.max())
-    st.write(type(st.session_state.max_MW))
 if "max_numftn" not in st.session_state:
     st.session_state["max_numftn"] = int(data_rxn.num_ftn.max())
 
@@ -177,3 +176,53 @@ else:
         submitted = st.form_submit_button("submit",on_click=log_general_comment)
     
     
+# Start loading data here?
+@st.cache_data(ttl=600)
+def load_data():
+    # functional group data
+    #filename = homedir + "/../../data/" + "fg_analysis_2023-04-21.csv"
+    #data_df = pd.read_csv(filename,index_col=False)
+    url = gspdl.urlfy(st.secrets.data.fgroups_key)
+    st.write(url)
+    #data_df = gspdl.url_to_df(url)
+    sheet = gspdl.open_sheet(st.secrets.data.fgroups_key,st.secrets["gcp_service_account"])
+    ws = sheet.get_worksheet(0)
+    st.write(ws)
+    data_df = gspdl.worksheet_to_df(ws)
+
+    #def toset(mystr):
+    #   return frozenset( ast.literal_eval(mystr))
+    #data_df["matchidx"] = data_df["matchidx"].map(toset)
+    if iterate_by_matchidx:
+        multi   = data_df.set_index(["molid","rxn_name","ftn_id","matchid"])
+    else:
+        multi = data_df.set_index(["molid","matchidx","rxn_name"])
+
+    # functional group count data; makes initial filtering easier
+    #filename = homedir + "/../../data/" + "rxntypes_2023-04-21.csv"
+    #data_rxn = pd.read_csv(filename,index_col=False)
+    url = gspdl.urlfy(st.secrets.data.data_rxn_key)
+    data_rxn = gspdl.url_to_df(url)
+
+    # evaluations
+    # evaluate #ftnl groups identified
+    if "num_ftn" not in data_rxn.index:
+        data_rxn["num_ftn"] = 0.
+
+        num_ftn = multi.reset_index().set_index("molid").groupby(["molid"]).agg("nunique").matchidx
+        data_rxn.loc[multi.index.unique("molid"),"num_ftn"] = num_ftn
+
+    # evaluate MW
+    if "MW" not in data_rxn.index:
+        data_rxn["MW"] = 0.
+        def get_MW(row):
+            mol = Chem.MolFromSmiles(row.smiles)
+            row.MW = Chem.Descriptors.MolWt(mol)
+            return row
+        data_rxn = data_rxn.apply(get_MW,axis=1)
+    
+    return multi,data_rxn
+
+if "base_data" not in st.session_state:
+    multi,data_rxn = load_data()
+    st.session_state["base_data"] = (multi,data_rxn)
