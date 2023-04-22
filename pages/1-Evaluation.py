@@ -26,6 +26,9 @@ def load_sheet():
     return sheet
 sheet = load_sheet()
 
+# For read-only, use google sheets with export:
+# https://stackoverflow.com/questions/36096194/where-can-i-host-a-csv-so-i-can-directly-read-it-into-a-neo4j-database
+
 
 # Analysis imports
 import random
@@ -41,8 +44,16 @@ iterate_by_matchidx = False
 @st.cache_data
 def load_data():
     # functional group data
-    filename = homedir + "/../../data/" + "fg_analysis_2023-04-10.csv"
-    data_df = pd.read_csv(filename,index_col=False)
+    #filename = homedir + "/../../data/" + "fg_analysis_2023-04-21.csv"
+    #data_df = pd.read_csv(filename,index_col=False)
+    url = gspdl.urlfy(st.secrets.data.fgroups_key)
+    st.write(url)
+    #data_df = gspdl.url_to_df(url)
+    sheet = gspdl.open_sheet(st.secrets.data.fgroups_key,st.secrets["gcp_service_account"])
+    ws = sheet.get_worksheet(0)
+    st.write(ws)
+    data_df = gspdl.worksheet_to_df(ws)
+
     #def toset(mystr):
     #   return frozenset( ast.literal_eval(mystr))
     #data_df["matchidx"] = data_df["matchidx"].map(toset)
@@ -52,8 +63,10 @@ def load_data():
         multi = data_df.set_index(["molid","matchidx","rxn_name"])
 
     # functional group count data; makes initial filtering easier
-    filename = homedir + "/../../data/" + "rxntypes_2023-04-10.csv"
-    data_rxn = pd.read_csv(filename,index_col=False)
+    #filename = homedir + "/../../data/" + "rxntypes_2023-04-21.csv"
+    #data_rxn = pd.read_csv(filename,index_col=False)
+    url = gspdl.urlfy(st.secrets.data.data_rxn_key)
+    data_rxn = gspdl.url_to_df(url)
 
     # evaluations
     # evaluate #ftnl groups identified
