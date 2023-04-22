@@ -91,6 +91,10 @@ def load_data():
     return multi,data_rxn
 
 multi,data_rxn = load_data()
+if "base_data" not in st.session_state:
+    multi,data_rxn = load_data()
+    st.session_state["base_data"] = (multi,data_rxn)
+
 
 # Key variable initializations
 if "max_MW" not in st.session_state:

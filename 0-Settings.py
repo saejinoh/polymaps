@@ -102,6 +102,10 @@ if "eval_general" not in st.session_state:
 
 # ===== ===== BEGIN LAYOUT ===== =====
 st.markdown("# Welcome!")
+st.markdown("- On this page, you can choose some basic filters for the molecules to view, as well as leave general comments about the process, monomers, etc.  \n")
+st.markdown("- On the `Evaluation` tab (in the sidebar), you will be shown monomers, with one highlighted functional group at a time, and the opportunity to rate the suitability of the functional groups for polymerization. *The first load will take a few minutes!* \n")
+st.markdown("- On the `Results` tab, you can view your top-rated molecules, and optionally download a `.csv` of all molecules that you've rated.")
+
 user_info = persist_widget( st.text_input, "email",
                                key = "userinfo", val0="",
                                on_change = lambda: None)
@@ -174,11 +178,14 @@ else:
     with st.form("general comments/bugs",clear_on_submit=True):
         comment_area = st.text_area("General comments?","",key="comments_general")
         submitted = st.form_submit_button("submit",on_click=log_general_comment)
-    
-    
-# Start loading data here?
+
+
+# Preload data
 @st.cache_data(ttl=600)
 def load_data():
+    if "base_data" in st.session_state:
+        return st.session_state["base_data"][0], st.session_state["base_data"][0]
+
     # functional group data
     #filename = homedir + "/../../data/" + "fg_analysis_2023-04-21.csv"
     #data_df = pd.read_csv(filename,index_col=False)
@@ -193,10 +200,7 @@ def load_data():
     #def toset(mystr):
     #   return frozenset( ast.literal_eval(mystr))
     #data_df["matchidx"] = data_df["matchidx"].map(toset)
-    if iterate_by_matchidx:
-        multi   = data_df.set_index(["molid","rxn_name","ftn_id","matchid"])
-    else:
-        multi = data_df.set_index(["molid","matchidx","rxn_name"])
+    multi = data_df.set_index(["molid","matchidx","rxn_name"])
 
     # functional group count data; makes initial filtering easier
     #filename = homedir + "/../../data/" + "rxntypes_2023-04-21.csv"
@@ -223,6 +227,7 @@ def load_data():
     
     return multi,data_rxn
 
+multi,data_rxn = load_data()
 if "base_data" not in st.session_state:
     multi,data_rxn = load_data()
     st.session_state["base_data"] = (multi,data_rxn)
