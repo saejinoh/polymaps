@@ -87,7 +87,7 @@ for ix,x in enumerate(rxn_types):
     if x in rxn_name_alias: #e.g. simple -> alkene-linear
         names_to_alias.append( (ix,x) )
 for ix,x in names_to_alias:
-    rxn_name_alias[ix] = rxn_name_alias[x]
+    rxn_types[ix] = rxn_name_alias[x]
 
 if "b_update_data" not in st.session_state:
     st.session_state["b_update_data"] = False
