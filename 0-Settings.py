@@ -88,6 +88,7 @@ def set_update_data_flag(flag):
 
 if "max_MW" not in st.session_state:
     st.session_state["max_MW"] = float(data_rxn.MW.max())
+    st.write( type(st.session_state.max_MW) )
 if "max_numftn" not in st.session_state:
     st.session_state["max_numftn"] = int(data_rxn.num_ftn.max())
 
