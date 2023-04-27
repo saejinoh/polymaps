@@ -82,7 +82,7 @@ rxn_types = data_rxn.columns
 rxn_types = [x for x in rxn_types if not x.startswith("step") and x != "smiles"]
 rxn_name_alias = {"simple":"alkene-linear"}
 rxn_name_alias_reverse = {"alkene-linear":"simple"}
-for ix,x in rxn_types:
+for ix,x in enumerate(rxn_types):
     if x in rxn_name_alias: #e.g. simple -> alkene-linear
         rxn_name_alias[ix] = rxn_name_alias[x]
 
