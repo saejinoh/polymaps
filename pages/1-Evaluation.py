@@ -118,6 +118,8 @@ def set_update_data_flag(flag):
 
 
 # ===== Chemical Utilities
+rxn_name_alias = {"simple":"alkene-linear"}
+rxn_name_alias_reverse = {"alkene-linear":"simple"}
 def random_molecule(data,rxn_name = None):
     """return a random molecule from the set"""
     molids = data.index.levels[0].unique().values
@@ -143,6 +145,9 @@ def filter_rxn(data, data_rxn, rxn_name = None):
         inds = sub_data.index.get_level_values("molid").unique().values
     else:
         # filter by rxn_name
+        if rxn_name in rxn_name_alias:
+            rxn_name = rxn_name_alias_reverse[rxn_name]
+
         inds = np.argwhere( (data_rxn[rxn_name]>0).values ).flatten() #alternative way to filter
         #sub_data = data.query("molid in @inds")
         rxns_of_interest = [rxn_name]
@@ -540,7 +545,7 @@ with st.sidebar:
             rxn_types = match_specific_data.index.unique("rxn_name")
 
             st.session_state["rxns_for_this_ftn_group"] = []
-            for rxn_name in rxn_types:
+            for rxn_name in rxn_types:  
                 keyname = "rating_" + rxn_name
                 st.session_state["rxns_for_this_ftn_group"].append(keyname)
                 radio_quality_list.append( st.radio(rxn_name + " polymerization",
