@@ -192,7 +192,7 @@ else:
 
 
 # Preload data
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=300)
 def load_data():
     if "base_data" in st.session_state:
         return st.session_state["base_data"][0], st.session_state["base_data"][0]
