@@ -551,23 +551,33 @@ with st.sidebar:
                     rxn_name = rxn_name_alias[rxn_name]
                 keyname = "rating_" + rxn_name
                 st.session_state["rxns_for_this_ftn_group"].append(keyname)
-                radio_quality_list.append( st.radio(rxn_name + " polymerization",
-                                                    ("skip","bad","interesting","good"),
-                                                    horizontal=True,
-                                                    key = keyname)
-                )
+                #radio_quality_list.append( st.radio(rxn_name + " polymerization",
+                #                                    ("skip","bad","interesting","good"),
+                #                                    horizontal=True,
+                #                                    key = keyname)
+                #)
+                radio_quality_list.append( st.select_slider("**" + rxn_name + " polymerization**",
+                                                            ("skip","bad","","interesting","","good"),
+                                                            key=keyname))
+
                 #radio_quality = st.radio("**Ftnl group quality**",("skip","bad","interesting","good"),horizontal=True)
-            radio_quality_list.append( st.radio("other polymerization",
-                                                ("skip","bad","interesting","good"),
-                                                horizontal=True,
-                                                key="rating_other") 
-            )
+            #radio_quality_list.append( st.radio("other polymerization",
+            #                                    ("skip","bad","interesting","good"),
+            #                                    horizontal=True,
+            #                                    key="rating_other") 
+            #)
+            radio_quality_list.append( st.select_slider("**other polymerization**",
+                                                        ("skip","bad","","interesting","","good"),
+                                                        key="rating_other"))
             st.session_state["rxns_for_this_ftn_group"].append("rating_other")
 
 
             text_form = st.text_area("comments on the highlighted functional group: (use atom indices if needed)","",key="comments_ftn")
 
-            radio_quality = st.radio("**Overall monomer quality**",("no comment","bad","interesting","good"),horizontal=True,key="rating_mol")
+            #radio_quality = st.radio("**Overall monomer quality**",("no comment","bad","interesting","good"),horizontal=True,key="rating_mol")
+            radio_quality = st.select_slider("**Overall monomer quality**",
+                                                        ("skip","bad","","interesting","","good"),
+                                                        key="rating_mol")
             text_form = st.text_area("comments on the monomer: (use atom indices if needed)","",key="comments_mol")
 
             submitted = st.form_submit_button("submit",on_click=submit_update)
