@@ -193,7 +193,7 @@ def load_data():
     #data_df = pd.read_csv(filename,index_col=False)
     url = gspdl.urlfy(st.secrets.data.fgroups_key)
     #data_df = gspdl.url_to_df(url)
-    sheet = gspdl.open_sheet(st.secrets.data.fgroups_key,st.secrets["gcp_service_account"])
+    sheet = gspdl.open_sheet(st.secrets.data.fgroups_sample_key,st.secrets["gcp_service_account"])
     ws = sheet.get_worksheet(0)
 
     data_df = gspdl.worksheet_to_df(ws)

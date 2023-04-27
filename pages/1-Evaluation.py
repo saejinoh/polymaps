@@ -289,7 +289,7 @@ def generate_index(multi_filtered,trial_molid=None):
     if "rxn_selection" not in st.session_state: #to avoid circularity during first call before navigation bar is loaded
         description = description_base + f"##### **Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n##### **Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `any`"
     else:
-        description = description_base + f"##### **Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n##### **Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `{st.session_state.rxn_selection}`"
+        description = description_base + f"##### **Molecule ID:**\t\t `{molid:{numdigits_str}}`   \n({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n##### **Potential functional group:**\t\t `{ftn_subid+1}`/`{num_ftnl_groups}`  \nfor rxn type `{st.session_state.rxn_selection}`"
     st.session_state["prev_data"] = multi_filtered
     st.session_state["data_index"] = (molid, ftn_group_ids)
     st.session_state["ftn_tracking"] = (ftn_subid,num_ftnl_groups)
