@@ -80,7 +80,7 @@ data_rxn = gspdl.url_to_df(url)
 rxn_types = data_rxn.columns.values
 # TMP: eliminate step reactions
 #rxn_types = [x for x in rxn_types if not x.startswith("step") and x != "smiles"]
-rxn_types = rxn_types[:-2] #last two elements should be MW and rxn
+rxn_types = rxn_types[:-3] #last two elements should be MW and rxn
 rxn_name_alias = {"simple":"alkene-linear"}
 rxn_name_alias_reverse = {"alkene-linear":"simple"}
 names_to_alias = []
@@ -88,7 +88,6 @@ for ix,x in enumerate(rxn_types):
     if x in rxn_name_alias: #e.g. simple -> alkene-linear
         names_to_alias.append( (ix,x) )
 for ix,x in names_to_alias:
-    st.write( (ix, x) )
     rxn_types[ix] = rxn_name_alias[x]
 
 if "b_update_data" not in st.session_state:
