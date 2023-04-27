@@ -287,9 +287,9 @@ def generate_index(multi_filtered,trial_molid=None):
     numdigits_str = "0"+str(numdigits)
 
     if "rxn_selection" not in st.session_state: #to avoid circularity during first call before navigation bar is loaded
-        description = description_base + f"**Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n**Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `any`"
+        description = description_base + f"#####**Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n#####**Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `any`"
     else:
-        description = description_base + f"**Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n**Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `{st.session_state.rxn_selection}`"
+        description = description_base + f"#####**Molecule ID:**\t\t `{molid:{numdigits_str}}` ({mol_subid+1}/{molnum} monomers identified for the chosen reaction type)  \n#####**Showing:**\t\t potential functional group `{ftn_subid+1}`/`{num_ftnl_groups}` for rxn type `{st.session_state.rxn_selection}`"
     st.session_state["prev_data"] = multi_filtered
     st.session_state["data_index"] = (molid, ftn_group_ids)
     st.session_state["ftn_tracking"] = (ftn_subid,num_ftnl_groups)
@@ -522,7 +522,7 @@ if st.session_state["b_update_data"]: #in multipage form, make sure we always up
 
 
 with st.sidebar:
-    molid_input = st.text_input("specify molid (optional)",key="molid_input",on_change=clear_input)
+    molid_input = st.text_input("specify molecule ID (optional)",key="molid_input",on_change=clear_input)
 
     # Submission
     if "userinfo" not in st.session_state \
@@ -607,8 +607,8 @@ else:
 
 
 # ===== Display
-st.image(im)
 st.markdown(st.session_state["data_index_description"])
+st.image(im)
 st.markdown(f"{evaluation}")
 checkbox_details = st.checkbox('Show substituent analysis below')
 if checkbox_details:
