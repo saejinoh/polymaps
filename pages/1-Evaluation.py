@@ -141,7 +141,7 @@ def filter_rxn(data, data_rxn, rxn_name = None):
     # filter by reaction name. TODO: step reactions needs adjustment
     if rxn_name is None or rxn_name == "choose for me!":
         # TMP, remove step reactions
-        #sub_data = data.iloc[ ~data.index.get_level_values("rxn_name").isin(step_rxn_names) ]
+        sub_data = data.iloc[ ~data.index.get_level_values("rxn_name").isin(step_rxn_names) ]
         sub_data = data
         inds = sub_data.index.get_level_values("molid").unique().values
     else:

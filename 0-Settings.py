@@ -79,7 +79,7 @@ data_rxn = gspdl.url_to_df(url)
 
 rxn_types = data_rxn.columns.values
 # TMP: eliminate step reactions
-#rxn_types = [x for x in rxn_types if not x.startswith("step") and x != "smiles"]
+rxn_types = [x for x in rxn_types if not x.startswith("step") and x != "smiles"]
 rxn_types = rxn_types[:-3] #last two elements should be MW and rxn
 rxn_name_alias = {"simple":"alkene-linear"}
 rxn_name_alias_reverse = {"alkene-linear":"simple"}
@@ -201,7 +201,7 @@ def load_data():
     #filename = homedir + "/../../data/" + "fg_analysis_2023-04-21.csv"
     #data_df = pd.read_csv(filename,index_col=False)
     url = gspdl.urlfy(st.secrets.data.fgroups_key)
-    data_df = gspdl.url_to_df(url)
+    data_df = gspdl.url_to_df(url) #still slow (~30 seconds)
     #sheet = gspdl.open_sheet(st.secrets.data.fgroups_key,st.secrets["gcp_service_account"])
     #ws = sheet.get_worksheet(0)
     #data_df = gspdl.worksheet_to_df(ws)
