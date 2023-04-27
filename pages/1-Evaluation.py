@@ -546,6 +546,8 @@ with st.sidebar:
 
             st.session_state["rxns_for_this_ftn_group"] = []
             for rxn_name in rxn_types:  
+                if rxn_name in rxn_name_alias:
+                    rxn_name = rxn_name_alias[rxn_name]
                 keyname = "rating_" + rxn_name
                 st.session_state["rxns_for_this_ftn_group"].append(keyname)
                 radio_quality_list.append( st.radio(rxn_name + " polymerization",
