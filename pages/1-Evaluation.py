@@ -538,6 +538,7 @@ with st.sidebar:
     else:
         with st.form("evaluation",clear_on_submit = True):
             st.markdown("**Functional group quality for...**")
+            st.markdown("0 to skip, 1: bad, 3: interesting, 5: good")
             radio_quality_list = []
 
             multi_filtered = st.session_state["prev_data"]
@@ -557,7 +558,7 @@ with st.sidebar:
                 #                                    key = keyname)
                 #)
                 radio_quality_list.append( st.select_slider("**" + rxn_name + " polymerization**",
-                                                            ("skip","bad","","interesting","","good"),
+                                                            ("skip","1: bad","2","3: interesting","4","5: good"),
                                                             key=keyname))
 
                 #radio_quality = st.radio("**Ftnl group quality**",("skip","bad","interesting","good"),horizontal=True)
@@ -567,7 +568,7 @@ with st.sidebar:
             #                                    key="rating_other") 
             #)
             radio_quality_list.append( st.select_slider("**other polymerization**",
-                                                        ("skip","bad","","interesting","","good"),
+                                                        ("skip","1: bad","2","3: interesting","4","5: good"),
                                                         key="rating_other"))
             st.session_state["rxns_for_this_ftn_group"].append("rating_other")
 
@@ -576,7 +577,7 @@ with st.sidebar:
 
             #radio_quality = st.radio("**Overall monomer quality**",("no comment","bad","interesting","good"),horizontal=True,key="rating_mol")
             radio_quality = st.select_slider("**Overall monomer quality**",
-                                                        ("skip","bad","","interesting","","good"),
+                                                        ("skip","1: bad","2","3: interesting","4","5: good"),
                                                         key="rating_mol")
             text_form = st.text_area("comments on the monomer: (use atom indices if needed)","",key="comments_mol")
 
