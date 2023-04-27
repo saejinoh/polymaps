@@ -77,7 +77,7 @@ url = gspdl.urlfy(st.secrets.data.data_rxn_key)
 data_rxn = gspdl.url_to_df(url)
 
 
-rxn_types = data_rxn.columns
+rxn_types = data_rxn.columns.values
 # TMP: eliminate step reactions
 #rxn_types = [x for x in rxn_types if not x.startswith("step") and x != "smiles"]
 rxn_types = rxn_types[:-2] #last two elements should be MW and rxn
