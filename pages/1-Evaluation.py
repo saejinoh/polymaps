@@ -107,9 +107,9 @@ if "max_numftn" not in st.session_state:
 quality_dict = {0:"poor",1:"decent",2:"promising"}
 eprop_dict = {-1:"withdrawing", 1:"donating", 0:"undetermined"}
 index = {"molid":0, "rxn_name":1, "ftn_id":2, "matchid":3}
-rxn_types = data_rxn.columns
+#rxn_types = data_rxn.columns
 # TMP: eliminate step reactions
-rxn_types = [x for x in rxn_types if not x.startswith("step") and x != "smiles"]
+#rxn_types = [x for x in rxn_types if not x.startswith("step") and x != "smiles"]
 
 if "b_update_data" not in st.session_state:
     st.session_state["b_update_data"] = False
@@ -141,7 +141,8 @@ def filter_rxn(data, data_rxn, rxn_name = None):
     # filter by reaction name. TODO: step reactions needs adjustment
     if rxn_name is None or rxn_name == "choose for me!":
         # TMP, remove step reactions
-        sub_data = data.iloc[ ~data.index.get_level_values("rxn_name").isin(step_rxn_names) ]
+        #sub_data = data.iloc[ ~data.index.get_level_values("rxn_name").isin(step_rxn_names) ]
+        sub_data = data
         inds = sub_data.index.get_level_values("molid").unique().values
     else:
         # filter by rxn_name
@@ -332,10 +333,10 @@ def generate_index_by_matchid(multi_filtered):
     else:
         rxn_name = mol_specific_data.index[0][1] # in my scheme, should all be the same reaction name???
 
-    if not rxn_name.startswith("step"): # TMP filter out step
-        ftn_id = 0
-        match_totals = len(mol_specific_data.index.get_level_values("matchid").unique().values)
-        match_id = np.random.randint(0,match_totals) #chooses a random match
+    #if not rxn_name.startswith("step"): # TMP filter out step
+    ftn_id = 0
+    match_totals = len(mol_specific_data.index.get_level_values("matchid").unique().values)
+    match_id = np.random.randint(0,match_totals) #chooses a random match
 
     # store and return
     st.session_state["data_index_description"] = f"**Molecule:**\t\t `{molid:{numdigits_str}}` ({subid}/{molnum} monomers identified for the chosen reaction type)  \n**Rxn type:**\t\t `{rxn_name}`  \n**Showing:**\t\t `{match_id+1}`/`{match_totals}` reactive sites identified"
