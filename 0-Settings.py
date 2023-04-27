@@ -80,7 +80,7 @@ data_rxn = gspdl.url_to_df(url)
 rxn_types = data_rxn.columns
 # TMP: eliminate step reactions
 #rxn_types = [x for x in rxn_types if not x.startswith("step") and x != "smiles"]
-rxn_types.pop().pop() #last two elements should be MW and rxn
+rxn_types = rxn_types[:-2] #last two elements should be MW and rxn
 rxn_name_alias = {"simple":"alkene-linear"}
 rxn_name_alias_reverse = {"alkene-linear":"simple"}
 names_to_alias = []
