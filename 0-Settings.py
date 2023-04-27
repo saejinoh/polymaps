@@ -115,7 +115,7 @@ if "eval_general" not in st.session_state:
 # ===== ===== BEGIN LAYOUT ===== =====
 st.markdown("# Welcome!")
 st.markdown("- On this page, you can choose some basic filters for the molecules to view, as well as leave general comments about the process, monomers, etc.  \n")
-st.markdown("- On the `Evaluation` tab (in the sidebar), you will be shown monomers, with one highlighted functional group at a time, and the opportunity to rate the suitability of the functional groups for polymerization. \n  - Rating is on a scale of `1 (bad)` - `3 (interesting)` - `5 (good)`. Default is `0 to skip` judging. \n  - The first load may take a few minutes!* \n")
+st.markdown("- On the `Evaluation` tab (in the sidebar), you will be shown monomers, with one highlighted functional group at a time, and the opportunity to rate the suitability of the functional groups for polymerization. \n  - Rating is on a scale of `1 (bad)` - `3 (interesting)` - `5 (good)`. Default is `0 to skip` judging. \n  - *The first load may take a few minutes!* \n")
 st.markdown("- On the `Results` tab, you can view your top-rated molecules, and optionally download a `.csv` of all molecules that you've rated.")
 
 user_info = persist_widget( st.text_input, "email",
