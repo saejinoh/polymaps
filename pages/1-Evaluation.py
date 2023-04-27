@@ -538,7 +538,7 @@ with st.sidebar:
     else:
         with st.form("evaluation",clear_on_submit = True):
             st.markdown("**Functional group quality for...**")
-            st.markdown("0 to skip, 1: bad, 3: interesting, 5: good")
+            st.markdown("(`0` to skip, `1`: bad, `3`: interesting, `5`: good)")
             radio_quality_list = []
 
             multi_filtered = st.session_state["prev_data"]
