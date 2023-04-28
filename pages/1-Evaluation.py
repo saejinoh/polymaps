@@ -211,10 +211,9 @@ def generate_index(multi_filtered,trial_molid=None):
         st.session_state["initialized"] = True
     elif trial_molid is not None:
         #multi_filtered = st.session_state.prev_data
-
         if trial_molid not in multi_filtered.index.get_level_values("molid").unique().values:
             st.markdown(f"##### Input molid `{st.session_state.molid_input}` not in current filters. Ignoring.")
-            molid = trial_molid
+            molid = trial_molid # will throw an error, which will get caught, then return to original behavior. probably not idea that it's so segmented.
             ftn_subid = st.session_state["ftn_tracking"][0]
             description_base = ""
         else: 
@@ -287,7 +286,7 @@ def generate_index(multi_filtered,trial_molid=None):
     mol_specific_data = multi_filtered.query("molid == @molid")
     num_ftnl_groups = mol_specific_data.reset_index().agg("nunique").matchidx
     ftn_group_ids = mol_specific_data.index.get_level_values("matchidx").unique()[ftn_subid]
-    
+
     # Save and return
     numdigits=len(str(molnum))
     numdigits_str = "0"+str(numdigits)
@@ -512,6 +511,8 @@ def submit_update(molid=None,log=True):
         st.session_state["data_index"] = generate_index(multi_filtered,molid)
 
 def clear_input():
+    """Action upon entering a specific input
+    """
     if "settings_initialized" in st.session_state:
         submit_update(log=False)
         try:
@@ -519,7 +520,8 @@ def clear_input():
             update_filters()
             generate_index(st.session_state.prev_data,trial_molid)
         except:
-            st.markdown(f"Input molid `{st.session_state.molid_input}` invaild, ignoring.")
+            pass
+            #st.markdown(f"Input molid `{st.session_state.molid_input}` invaild, ignoring.")
         st.session_state["molid_input"] = "" #callbacks are executed before everything, so the session_state can be set *before* the input field is declared/defined.
 
 
