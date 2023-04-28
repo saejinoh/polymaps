@@ -13,14 +13,28 @@ else:
     molids = data.molid.unique()
     mols = []
     smiles = []
+    good_molids = []
     legends = []
     for molid in molids:
         tmp_data = data.loc[ data.molid == molid ]
         ratings = tmp_data.rating_mol.values
-        if "interesting" in ratings or "good" in ratings:
+        if "3: interesting" in ratings or "5: good" in ratings or "4" in ratings:
             smiles.append( tmp_data.iloc[0].smiles )
             mols.append( Chem.MolFromSmiles(smiles[-1]) )
             legends.append( f"{str(molid)}" )
+            good_molids.append(molid)
+    
+    data_details = st.session_state["eval_details"]
+    molids = data_details.molid.unique()
+    for molid in molids:
+        if molid not in good_molids:
+            tmp_data = data_details.loc[ data_details.molid == molid ]
+            ratings = tmp_data.rating.values
+            if "3: interesting" in ratings or "5: good" in ratings or "4" in ratings:
+                smiles.append( tmp_data.iloc[0].smiles )
+                mols.append( Chem.MolFromSmiles(smiles[-1]) )
+                legends.append( f"{str(molid)}" )
+                good_molids.append(molid)
     
     svg = Chem.Draw.MolsToGridImage(mols,molsPerRow=3,subImgSize=(250,250),legends=legends, useSVG=True)
 
