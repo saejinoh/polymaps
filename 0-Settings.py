@@ -12,7 +12,7 @@ st.session_state["settings_initialized"] = True
 
 # database connection
 import gspread_pdlite as gspdl
-@st.cache_resource
+@st.cache_resource(ttl=600)
 def load_sheet():
     sheet = gspdl.open_sheet(st.secrets.data.google_key, st.secrets["gcp_service_account"])
     return sheet
@@ -122,6 +122,24 @@ user_info = persist_widget( st.text_input, "email",
                                key = "userinfo", val0="",
                                on_change = lambda: None)
 
+def load_user_session():
+    sheet = gspdl.open_sheet(st.secrets.data.google_key, st.secrets["gcp_service_account"])
+
+    ws = sheet.worksheet(st.secrets.data.name_mol)
+    tmp_df = gspdl.worksheet_to_df(ws)
+    st.session_state["eval_mol"] = tmp_df[ tmp_df.userinfo == st.session_state.userinfo ]
+    
+    ws = sheet.worksheet(st.secrets.data.name_details)
+    tmp_df = gspdl.worksheet_to_df(ws)
+    st.session_state["eval_details"] = tmp_df[ tmp_df.userinfo == st.session_state.userinfo ]
+
+
+if "userinfo" in st.session_state \
+    and st.session_state["userinfo"] not in ["",None] \
+    and "@" in st.session_state["userinfo"]:
+    load_previous = st.button("(Optional): load all previous session results",
+                              on_click=load_user_session)
+
 # ===== Navigation =====
 #st.markdown("## Navigation & Settings")
 #st.markdown("### On next molecule, show...")
@@ -181,18 +199,19 @@ def log_general_comment():
     ws    = sheet.worksheet( st.secrets.data.name_general )
     gspdl.worksheet_append( ws, pd.Series(comment_dict) )
 
-if "userinfo" not in st.session_state \
-    or st.session_state["userinfo"] in ["",None] \
-    or "@" not in st.session_state["userinfo"]:
-    st.markdown("##### Please enter a valid e-mail above in order to submit general comments")
-else:
-    with st.form("general comments/bugs",clear_on_submit=True):
-        comment_area = st.text_area("General comments?","",key="comments_general")
-        submitted = st.form_submit_button("submit",on_click=log_general_comment)
+with st.sidebar:
+    if "userinfo" not in st.session_state \
+        or st.session_state["userinfo"] in ["",None] \
+        or "@" not in st.session_state["userinfo"]:
+        st.markdown("##### Please enter a valid e-mail to the right in order to submit general comments")
+    else:
+        with st.form("general comments/bugs",clear_on_submit=True):
+            comment_area = st.text_area("General comments?","",key="comments_general")
+            submitted = st.form_submit_button("submit",on_click=log_general_comment)
 
 
 # Preload data
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=600)
 def load_data():
     if "base_data" in st.session_state:
         return st.session_state["base_data"][0], st.session_state["base_data"][0]
