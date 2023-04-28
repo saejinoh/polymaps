@@ -52,11 +52,11 @@ def load_data():
     #data_df = pd.read_csv(filename,index_col=False)
     url = gspdl.urlfy(st.secrets.data.fgroups_key)
     #st.write(url)
-    #data_df = gspdl.url_to_df(url)
-    sheet = gspdl.open_sheet(st.secrets.data.fgroups_key,st.secrets["gcp_service_account"])
-    ws = sheet.get_worksheet(0)
+    data_df = gspdl.url_to_df(url)
+    #sheet = gspdl.open_sheet(st.secrets.data.fgroups_key,st.secrets["gcp_service_account"])
+    #ws = sheet.get_worksheet(0)
     #st.write(ws)
-    data_df = gspdl.worksheet_to_df(ws)
+    #data_df = gspdl.worksheet_to_df(ws)
 
     #def toset(mystr):
     #   return frozenset( ast.literal_eval(mystr))
@@ -567,17 +567,21 @@ with st.sidebar:
             #                                    horizontal=True,
             #                                    key="rating_other") 
             #)
-            radio_quality_list.append( st.select_slider("**other polymerization**",
-                                                        ("skip","1: bad","2","3: interesting","4","5: good"),
+            with st.expander("manually enter other polymerization for this functional group",expanded=False):
+                radio_quality_list.append( st.select_slider("**other polymerization**",
+                                                        ("skip", "1: bad", "2", 
+                                                        "3: interesting",
+                                                        "4","5: good"),
                                                         key="rating_other"))
-            st.session_state["rxns_for_this_ftn_group"].append("rating_other")
+                st.session_state["rxns_for_this_ftn_group"].append("rating_other")
 
-
-            text_form = st.text_area("comments on the highlighted functional group: (use atom indices if needed)","",key="comments_ftn")
+                text_form = st.text_area("comments on the highlighted functional group: (use atom indices if needed)","",key="comments_ftn")
 
             #radio_quality = st.radio("**Overall monomer quality**",("no comment","bad","interesting","good"),horizontal=True,key="rating_mol")
             radio_quality = st.select_slider("**Overall monomer quality**",
-                                                        ("skip","1: bad","2","3: interesting","4","5: good"),
+                                                        ("skip","1: bad","2",
+                                                        "3: interesting",
+                                                        "4","5: good"),
                                                         key="rating_mol")
             text_form = st.text_area("comments on the monomer: (use atom indices if needed)","",key="comments_mol")
 
