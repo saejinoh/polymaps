@@ -160,7 +160,7 @@ iteration_selection = persist_widget( st.selectbox,
 slider_MW = persist_widget(st.slider, "MW range",
                             min_value = 0., max_value = st.session_state.max_MW,
                             key = "slider_MW",
-                            val0 = (10.,st.session_state.max_MW),
+                            val0 = (0.,st.session_state.max_MW),
                             on_change = lambda: set_update_data_flag(True) )
 
 # Simplicity/Complexity
