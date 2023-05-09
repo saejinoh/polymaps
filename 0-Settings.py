@@ -98,7 +98,7 @@ def set_update_data_flag(flag):
 if "max_MW" not in st.session_state:
     st.session_state["max_MW"] = float(data_rxn.MW.max())
 if "max_numftn" not in st.session_state:
-    st.session_state["max_numftn"] = int(data_rxn.num_ftn.max())
+    st.session_state["max_numftn"] = 5 #int(data_rxn.num_ftn.max())
 
 if "data_index" not in st.session_state:
     st.session_state["data_index"] = (0,"(0,)")
