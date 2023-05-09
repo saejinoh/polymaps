@@ -559,7 +559,7 @@ with st.sidebar:
                 #                                    horizontal=True,
                 #                                    key = keyname)
                 #)
-                radio_quality_list.append( st.select_slider("**" + rxn_name + " polymerization**",
+                radio_quality_list.append( st.selectbox("**" + rxn_name + " polymerization**",
                                                             ("skip","1: bad","2","3: interesting","4","5: good"),
                                                             key=keyname))
 
@@ -570,7 +570,7 @@ with st.sidebar:
             #                                    key="rating_other") 
             #)
             with st.expander("manually enter other polymerization for this functional group",expanded=False):
-                radio_quality_list.append( st.select_slider("**other polymerization**",
+                radio_quality_list.append( st.selectbox("**other polymerization**",
                                                         ("skip", "1: bad", "2", 
                                                         "3: interesting",
                                                         "4","5: good"),
@@ -580,7 +580,7 @@ with st.sidebar:
                 text_form = st.text_area("comments on the highlighted functional group: (use atom indices if needed)","",key="comments_ftn")
 
             #radio_quality = st.radio("**Overall monomer quality**",("no comment","bad","interesting","good"),horizontal=True,key="rating_mol")
-            radio_quality = st.select_slider("**Overall monomer quality**",
+            radio_quality = st.selectbox("**Overall monomer quality**",
                                                         ("skip","1: bad","2",
                                                         "3: interesting",
                                                         "4","5: good"),
