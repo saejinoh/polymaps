@@ -89,6 +89,7 @@ for ix,x in enumerate(rxn_types):
         names_to_alias.append( (ix,x) )
 for ix,x in names_to_alias:
     rxn_types[ix] = rxn_name_alias[x]
+st.session_state["rxn_types"] = rxn_types
 
 if "b_update_data" not in st.session_state:
     st.session_state["b_update_data"] = False
@@ -144,7 +145,7 @@ if "userinfo" in st.session_state \
 #st.markdown("## Navigation & Settings")
 #st.markdown("### On next molecule, show...")
 
-rxn_selection = persist_widget( st.selectbox, "reaction type",
+rxn_selection = persist_widget( st.selectbox, "polymerization motif",
                                key = "rxn_selection", val0 = "choose for me!",
                                options = ("choose for me!",*rxn_types),
                                on_change = lambda: set_update_data_flag(True))

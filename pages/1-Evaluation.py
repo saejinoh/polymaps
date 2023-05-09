@@ -476,10 +476,13 @@ def log_evaluation():
     for rxn_name_entry_in_session_state in st.session_state["rxns_for_this_ftn_group"]:
         rxn_rating_dict = copy.copy(root_dict)
         rxn_name = rxn_name_entry_in_session_state.removeprefix("rating_")
+        if rxn_name == "other":
+            rxn_name = st.session_state["rating_other_name"]
         rxn_rating_dict["rxn_name"] = rxn_name
         rxn_rating_dict["rating"] = st.session_state[rxn_name_entry_in_session_state]
 
-        rxn_ratings.append(rxn_rating_dict)
+        if rxn_rating_dict["rating"] != "skip":
+            rxn_ratings.append(rxn_rating_dict)
     rxn_ratings_dict_df = pd.DataFrame(rxn_ratings)
     st.session_state["eval_details"] = pd.concat([ st.session_state["eval_details"], 
                                                 rxn_ratings_dict_df ],
@@ -491,8 +494,10 @@ def log_evaluation():
 
     ws = sheet.worksheet(st.secrets.data.name_mol)
     gspdl.worksheet_append( ws, comment_dict_df )
-    ws = sheet.worksheet(st.secrets.data.name_details)
-    gspdl.worksheet_append( ws, rxn_ratings_dict_df )
+
+    if rxn_ratings_dict_df.size > 0:
+        ws = sheet.worksheet(st.secrets.data.name_details)
+        gspdl.worksheet_append( ws, rxn_ratings_dict_df )
     
 
 def submit_update(molid=None,log=True):
@@ -542,6 +547,7 @@ with st.sidebar:
             st.markdown("**Functional group quality for...**")
             st.markdown("(scoring scale: `0` to skip, `1`: bad, `3`: interesting, `5`: good)")
             radio_quality_list = []
+            rating_scale = ("skip","1: bad","2","3: interesting","4","5: good")
 
             multi_filtered = st.session_state["prev_data"]
             match_specific_data = multi_filtered.loc[ st.session_state["data_index"] ]
@@ -560,7 +566,7 @@ with st.sidebar:
                 #                                    key = keyname)
                 #)
                 radio_quality_list.append( st.selectbox("**" + rxn_name + " polymerization**",
-                                                            ("skip","1: bad","2","3: interesting","4","5: good"),
+                                                            rating_scale,
                                                             key=keyname))
 
                 #radio_quality = st.radio("**Ftnl group quality**",("skip","bad","interesting","good"),horizontal=True)
@@ -569,11 +575,12 @@ with st.sidebar:
             #                                    horizontal=True,
             #                                    key="rating_other") 
             #)
-            with st.expander("manually enter other polymerization for this functional group",expanded=False):
-                radio_quality_list.append( st.selectbox("**other polymerization**",
-                                                        ("skip", "1: bad", "2", 
-                                                        "3: interesting",
-                                                        "4","5: good"),
+            with st.expander("manually enter other polymerization motif for this functional group",expanded=False):
+                rxn_types_with_other = ["other (write in comments)"]
+                rxn_types_with_other.extend(st.session_state.rxn_types)
+                other_polymerization_motif = st.selectbox("**choose polymerization motif**",rxn_types_with_other,key="rating_other_name")
+                radio_quality_list.append( st.selectbox("**rating**",
+                                                        rating_scale,
                                                         key="rating_other"))
                 st.session_state["rxns_for_this_ftn_group"].append("rating_other")
 
@@ -581,9 +588,7 @@ with st.sidebar:
 
             #radio_quality = st.radio("**Overall monomer quality**",("no comment","bad","interesting","good"),horizontal=True,key="rating_mol")
             radio_quality = st.selectbox("**Overall monomer quality**",
-                                                        ("skip","1: bad","2",
-                                                        "3: interesting",
-                                                        "4","5: good"),
+                                                        rating_scale,
                                                         key="rating_mol")
             text_form = st.text_area("comments on the monomer: (use atom indices if needed)","",key="comments_mol")
 
