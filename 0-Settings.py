@@ -151,7 +151,7 @@ rxn_selection = persist_widget( st.selectbox, "polymerization motif",
                                on_change = lambda: set_update_data_flag(True))
 
 iteration_selection = persist_widget( st.selectbox,
-                                     "molecule iteration mode:",
+                                     "molecule presentation mode: (sequential or random)",
                                      options = ("random","sequential"),
                                      key="iteration_selection",
                                      val0 = "sequential",
