@@ -8,6 +8,11 @@ homedir = os.path.dirname(__file__)
 
 st.set_page_config(layout="wide")
 
+# general settings
+rating_scale = ("skip","1: bad","2","3: interesting","4","5: good")
+rating_scale = ("skip (don't answer)","0: N/A","1: impossible","2: bad potential","3: workable potential","4: promising potential","5: almost definitely works")
+rating_scale_index = {entry:ix for ix,entry in enumerate(rating_scale)}
+
 # database connection
 import gspread_pdlite as gspdl
 @st.cache_resource
@@ -243,53 +248,131 @@ ind0,ind1 = get_page_indices( st.session_state.batch_page )
 
 # generate images of molecules
 data_slice = multi_filtered.iloc[proxy_indices[ind0:ind1]]
-data_slice
-data_rxn.iloc[data_slice.index.unique("molid")]
+#data_slice
+#data_rxn.iloc[data_slice.index.unique("molid")]
 
 mols = []
 svgs = []
 molids = []
+molidxs = []
 rxn_names = []
 for row in data_slice.iterrows():
     mols.append( Chem.MolFromSmiles(row[1].smiles) )
     molids.append( row[0][0] )
     rxn_names.append( row[0][2] )
+    molidxs.append( row[0][1] ) #leave as string
     ftn_group_ids = ast.literal_eval(row[0][1]) #depends on ordering of index; should get ids of atoms in ftnl group.
     
+
     highlightcolors,highlightbonds = mychem.color_ftn(mols[-1],ftn_group_ids)
     im = mychem.highlight_draw(mols[-1],highlightcolors,highlightbonds,format="svg",
                                wd=250,ht=250)
     svgs.append(im)
 
 # ===== Display
+def log():
+    """save results of this page
+    Notes:
+    - uses the following global variables:
+        - entries (in session state)
+        - entries_general (in session state)
+        - eval_mol and eval_details (in session state from 0-Settings)
+        - rxn_names
+        - molids
+    """
+    timestamp = pd.Timestamp(time.time(),unit="s")
+
+    mol_ratings = []
+    rxn_ratings = []
+    for ii in range(data_slice.shape[0]):
+        root_dict = {}
+        molid, molidx = molids[ii],molidxs[ii]
+        rxn_name = rxn_names[ii]
+
+        root_dict["molid"],root_dict["molidx"] = molid, molidx
+        root_dict["smiles"] = data_rxn.loc[molid].smiles
+        root_dict["userinfo"] = st.session_state["userinfo"]
+        root_dict["timestamp"] = timestamp
+
+        #general ratings
+        comment_dict = copy.copy(root_dict)
+        comment_dict["comments_ftn"] = ""
+        comment_dict["comments_mol"] = ""
+        comment_dict["rating_mol"] = st.session_state[f"entry_general_{ii}"]
+        if "skip" not in comment_dict["rating_mol"]:
+            mol_ratings.append(comment_dict)
+        st.session_state[f"entry_general_{ii}"] = rating_scale[0] #reset
+
+        #detailed ratings
+        rxn_rating_dict = copy.copy(root_dict)
+        rxn_rating_dict["rxn_name"] = rxn_name
+        rxn_rating_dict["rating"] = st.session_state[f"entry_{ii}"]
+        if "skip" not in rxn_rating_dict["rating"]:
+            rxn_ratings.append(rxn_rating_dict)
+        st.session_state[f"entry_{ii}"] = rating_scale[0] #reset
+
+    #save
+    mol_ratings_df = pd.DataFrame(mol_ratings)
+    st.session_state["eval_mol"] = pd.concat([ st.session_state["eval_mol"], 
+                                                 mol_ratings_df],
+                                                ignore_index=True)
+    rxn_ratings_df = pd.DataFrame(rxn_ratings)
+    st.session_state["eval_details"] = pd.concat([ st.session_state["eval_details"], 
+                                                rxn_ratings_df ],
+                                                ignore_index=True)
+    
+    st.session_state["eval_mol"].to_csv("eval_mol.csv",index=False)
+    st.session_state["eval_details"].to_csv("eval_details.csv",index=False)
+
+    if mol_ratings_df.size > 0:
+        ws = sheet.worksheet(st.secrets.data.name_mol)
+        gspdl.worksheet_append( ws, mol_ratings_df )
+    if rxn_ratings_df.size > 0:
+        ws = sheet.worksheet(st.secrets.data.name_details)
+        gspdl.worksheet_append( ws, rxn_ratings_df )
+
+valid_email = not ("userinfo" not in st.session_state \
+                or st.session_state["userinfo"] in ["",None] \
+                or "@" not in st.session_state["userinfo"])
+
+def get_closest_page():
+    st.session_state.mols_per_page = st.session_state.mols_per_page_widget
+    st.session_state["batch_page"] = 1 + int( np.floor( ind0/st.session_state.mols_per_page ) )
+    if valid_email:
+        log()
+def page_forward():
+    st.session_state.batch_page = min(last_page_index+1, st.session_state.batch_page + 1)
+    if valid_email:
+        log()
+def page_backward():
+    st.session_state.batch_page = max(1, st.session_state.batch_page - 1)
+    if valid_email:
+        log()
+def store_page():
+    st.session_state.batch_page = int(st.session_state.batch_page_text)
+    st.session_state.batch_page_text = ""
+    if valid_email:
+        log()
+    
 with st.sidebar:
-    def get_closest_page():
-        st.session_state.mols_per_page = st.session_state.mols_per_page_widget
-        st.session_state["batch_page"] = 1 + int( np.floor( ind0/st.session_state.mols_per_page ) )
+    if not valid_email:
+        st.markdown("**Enter a valid e-mail on Settings page to submit evaluations.**")
+
+    st.markdown(f"## Page `{st.session_state.batch_page}`/`{last_page_index+1}`")
 
     st.select_slider("**Results per page**",(12,24,48,96),value = st.session_state.mols_per_page,
                      key="mols_per_page_widget",on_change=get_closest_page)
     
-    def store_page():
-        st.session_state.batch_page = int(st.session_state.batch_page_text)
-        st.session_state.batch_page_text = ""
     st.text_input("**Jump to page**",value = "", key="batch_page_text",
                   on_change=store_page)
-    
-    def page_forward():
-        st.session_state.batch_page = min(last_page_index+1, st.session_state.batch_page + 1)
-    def page_backward():
-        st.session_state.batch_page = max(1, st.session_state.batch_page - 1)
     st.button("next page",on_click = page_forward)
     st.button("previous page",on_click = page_backward)
 
 # Main Text
-st.markdown(f"## Page `{st.session_state.batch_page}`/`{last_page_index+1}`")
 #st.markdown(f"- **results {ind0+1}~{ind1}**")
 #st.write( proxy_indices[ind0:ind1] )
 
 # Entry Area
-rating_scale = ("skip","1: bad","2","3: interesting","4","5: good")
 n_rows = int(mols_per_page/3)
 
 entries = []
@@ -303,12 +386,41 @@ for ia in range(n_rows):
                 if index_abs < len(svgs):
                     st.image( svgs[index_abs] )
                     st.write(f"case `{index_abs + ind0}`, **mol ID: `{molids[index_abs]}`**")
-                    entries.append( st.selectbox(f"**quality for `{rxn_names[index_abs]}` polymerization**",
+                    if valid_email:
+                        current_molid = molids[index_abs]
+                        current_rxn = rxn_names[index_abs]
+                        current_molidx = molidxs[index_abs]
+
+                        if current_molid in st.session_state.eval_mol.molid.values \
+                            and current_molidx in st.session_state.eval_mol.molidx.values: #retrieve previous result for mol
+                            tmp_df = st.session_state.eval_mol
+                            tmp_slice = tmp_df[ (tmp_df.molid == current_molid) 
+                                               & (tmp_df.molidx == current_molidx) ]
+                            initial_mol_rating = rating_scale_index[tmp_slice.iloc[-1].rating_mol]
+                            st.session_state[f"entry_general_{index_abs}"] = tmp_slice.iloc[-1].rating_mol
+                        else:
+                            initial_mol_rating = 0
+                        
+                        if current_molid in st.session_state.eval_details.molid.values \
+                            and current_rxn in st.session_state.eval_details.rxn_name.values \
+                            and current_molidx in st.session_state.eval_details.molidx.values: #retrieve previous result for rxn_rating
+                            tmp_df = st.session_state.eval_details
+                            tmp_slice = tmp_df[ (tmp_df.molid == current_molid)
+                                               & (tmp_df.molidx == current_molidx)
+                                               & (tmp_df.rxn_name == current_rxn)   ]
+                            initial_rxn_rating = rating_scale_index[tmp_slice.iloc[-1].rating]
+                            st.session_state[f"entry_{index_abs}"] = tmp_slice.iloc[-1].rating
+                        else:
+                            initial_rxn_rating = 0
+
+                        entries.append( st.selectbox(f"**quality for `{rxn_names[index_abs]}` polymerization**",
                                                 rating_scale,
-                                                key=f"entry_{index_abs}"
+                                                key=f"entry_{index_abs}",
                                                 ))
-                    entries_general.append( st.selectbox("**overall monomer quality**",
+                        entries_general.append( st.selectbox("**overall monomer quality**",
                                                 rating_scale,
-                                                key=f"entry_general_{index_abs}"
+                                                key=f"entry_general_{index_abs}",
                                                 ))
+                    else:
+                        st.write(f"identified for: `{rxn_names[index_abs]}`")
                 #data_slice.iloc[ia*3 + ic]

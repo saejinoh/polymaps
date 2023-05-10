@@ -2,6 +2,7 @@ import streamlit as st
 from rdkit import Chem
 from rdkit.Chem import rdChemReactions
 from rdkit.Chem import Draw
+import numpy as np
 
 st.markdown("# Results")
 
@@ -36,9 +37,13 @@ else:
                 legends.append( f"{str(molid)}" )
                 good_molids.append(molid)
     
+    all_molids = data.molid.unique().tolist()
+    all_molids.extend( data_details.molid.unique() )
+    all_molids = np.unique(all_molids).tolist()
+
     svg = Chem.Draw.MolsToGridImage(mols,molsPerRow=3,subImgSize=(250,250),legends=legends, useSVG=True)
 
-    st.markdown(f"### `{len(mols)}`/`{molids.size}` molecules were rated as `interesting` or `good`:")
+    st.markdown(f"### `{len(mols)}`/`{len(all_molids)}` saved molecules were rated as `interesting` or `good`:")
     if len(mols) > 0:
         st.image(svg)
 

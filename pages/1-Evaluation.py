@@ -544,10 +544,12 @@ with st.sidebar:
         st.markdown("**Enter a valid e-mail on Settings page to submit evaluations.**")
     else:
         with st.form("evaluation",clear_on_submit = True):
-            st.markdown("**Functional group quality for...**")
-            st.markdown("(scoring scale: `0` to skip, `1`: bad, `3`: interesting, `5`: good)")
+            st.markdown("**Functional group quality for the followiong polymerizations...**")
+            #st.markdown("(scoring scale: `0` to skip, `1`: bad, `3`: interesting, `5`: good)")
+            st.markdown("(scoring scale: `1`: unworkable to `5`: almost definitely works)")
             radio_quality_list = []
             rating_scale = ("skip","1: bad","2","3: interesting","4","5: good")
+            rating_scale = ("skip (don't answer)","0: N/A","1: impossible","2: bad potential","3: some potential","4: promising potential","5: almost definitely works")
 
             multi_filtered = st.session_state["prev_data"] 
             # data might have been updated by batch_evaluation, 
@@ -594,7 +596,7 @@ with st.sidebar:
                 text_form = st.text_area("comments on the highlighted functional group: (use atom indices if needed)","",key="comments_ftn")
 
             #radio_quality = st.radio("**Overall monomer quality**",("no comment","bad","interesting","good"),horizontal=True,key="rating_mol")
-            radio_quality = st.selectbox("**Overall monomer quality**",
+            radio_quality = st.selectbox("**Is the molecule interesting overall?**",
                                                         rating_scale,
                                                         key="rating_mol")
             text_form = st.text_area("comments on the monomer: (use atom indices if needed)","",key="comments_mol")
