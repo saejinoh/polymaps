@@ -481,7 +481,7 @@ def log_evaluation():
         rxn_rating_dict["rxn_name"] = rxn_name
         rxn_rating_dict["rating"] = st.session_state[rxn_name_entry_in_session_state]
 
-        if rxn_rating_dict["rating"] != "skip":
+        if "skip" not in rxn_rating_dict["rating"]:
             rxn_ratings.append(rxn_rating_dict)
     rxn_ratings_dict_df = pd.DataFrame(rxn_ratings)
     st.session_state["eval_details"] = pd.concat([ st.session_state["eval_details"], 
@@ -544,7 +544,7 @@ with st.sidebar:
         st.markdown("**Enter a valid e-mail on Settings page to submit evaluations.**")
     else:
         with st.form("evaluation",clear_on_submit = True):
-            st.markdown("**Functional group quality for the followiong polymerizations...**")
+            st.markdown("**Functional group quality for the following polymerizations...**")
             #st.markdown("(scoring scale: `0` to skip, `1`: bad, `3`: interesting, `5`: good)")
             st.markdown("(scoring scale: `1`: unworkable to `5`: almost definitely works)")
             radio_quality_list = []
