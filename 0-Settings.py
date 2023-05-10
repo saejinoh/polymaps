@@ -93,13 +93,16 @@ st.session_state["rxn_types"] = rxn_types
 
 if "b_update_data" not in st.session_state:
     st.session_state["b_update_data"] = False
+if "b_update_data_batch" not in st.session_state:
+    st.session_state["b_update_data_batch"] = False
 def set_update_data_flag(flag):
     st.session_state["b_update_data"] = flag
+    st.session_state["b_update_data_batch"] = flag
 
 if "max_MW" not in st.session_state:
     st.session_state["max_MW"] = float(data_rxn.MW.max())
 if "max_numftn" not in st.session_state:
-    st.session_state["max_numftn"] = 5 #int(data_rxn.num_ftn.max())
+    st.session_state["max_numftn"] = int(data_rxn.num_ftn.max())
 
 if "data_index" not in st.session_state:
     st.session_state["data_index"] = (0,"(0,)")
@@ -161,16 +164,16 @@ iteration_selection = persist_widget( st.selectbox,
 slider_MW = persist_widget(st.slider, "MW range",
                             min_value = 0., max_value = st.session_state.max_MW,
                             key = "slider_MW",
-                            val0 = (0.,st.session_state.max_MW),
+                            val0 = (0.,250.),
                             on_change = lambda: set_update_data_flag(True) )
 
 # Simplicity/Complexity
 # (# of polymerizations identified, # functional groups, # subsitutents)
-slider_num_ftn = persist_widget(st.slider,"number functional groups",
+slider_num_ftn = persist_widget(st.slider,"number of potentially polymerizable functional groups",
                             min_value = 1, max_value = st.session_state.max_numftn,
                             on_change = lambda: set_update_data_flag(True),
                             key="slider_num_ftn",
-                            val0 = (1,st.session_state.max_numftn) )
+                            val0 = (1,4) )
 
 # Bulkiness
 
@@ -222,6 +225,7 @@ def load_data():
     #data_df = pd.read_csv(filename,index_col=False)
     url = gspdl.urlfy(st.secrets.data.fgroups_key)
     data_df = gspdl.url_to_df(url) #still slow (~30 seconds)
+
     #sheet = gspdl.open_sheet(st.secrets.data.fgroups_key,st.secrets["gcp_service_account"])
     #ws = sheet.get_worksheet(0)
     #data_df = gspdl.worksheet_to_df(ws)

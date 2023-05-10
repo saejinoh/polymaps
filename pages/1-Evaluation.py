@@ -396,7 +396,7 @@ if "settings_initialized" not in st.session_state:
     st.markdown("# Upon browser refresh, please revisit Settings page first.")
 
 
-if "prev_data" not in st.session_state: #first time through
+if "prev_data" not in st.session_state or "data_index" not in st.session_state: #first time through
     if "rxn_selection" in st.session_state:
         multi_filtered = filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
     else:
@@ -415,7 +415,7 @@ else:
 molids = multi_filtered.index.get_level_values("molid").unique()
 molnum = molids.values.size
 
-multi_filtered0 = filter_rxn(multi,data_rxn,None)
+multi_filtered0 = filter_rxn(multi,data_rxn,None) #default data set if filters fail
 
 
 # ===== Sidebar and submission logic
@@ -549,8 +549,15 @@ with st.sidebar:
             radio_quality_list = []
             rating_scale = ("skip","1: bad","2","3: interesting","4","5: good")
 
-            multi_filtered = st.session_state["prev_data"]
-            match_specific_data = multi_filtered.loc[ st.session_state["data_index"] ]
+            multi_filtered = st.session_state["prev_data"] 
+            # data might have been updated by batch_evaluation, 
+            # in which case need to ensure data_index is still in the new data set
+            try:
+                match_specific_data = multi_filtered.loc[ st.session_state["data_index"] ]
+            except:
+                st.session_state["data_index"] = multi_filtered.index[0][:2]
+                match_specific_data = multi_filtered.loc[ st.session_state["data_index"] ]
+            
 
             rxn_types = match_specific_data.index.unique("rxn_name")
 

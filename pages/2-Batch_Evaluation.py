@@ -7,16 +7,6 @@ import copy
 homedir = os.path.dirname(__file__)
 
 st.set_page_config(layout="wide")
-st.markdown(
-    """
-    <style>
-    [data-testid="stSidebar"][aria-expanded="true"]{
-        max-width: 450px;
-        min-width: 350px;
-    }
-    """,
-    unsafe_allow_html=True,
-)   
 
 # database connection
 import gspread_pdlite as gspdl
@@ -151,15 +141,15 @@ molnum = molids.values.size
 multi_filtered0 = filter_rxn(multi,data_rxn,None) #default data set if filters fail
 
 
-if "b_update_data" not in st.session_state:
-    st.session_state["b_update_data"] = False
+if "b_update_data_batch" not in st.session_state:
+    st.session_state["b_update_data_batch"] = False
 def set_update_data_flag(flag):
-    st.session_state["b_update_data"] = flag
+    st.session_state["b_update_data_batch"] = flag
 
 
 def update_filters():
     update_index = False
-    if st.session_state["b_update_data"]:
+    if st.session_state["b_update_data_batch"]:
         tmp_multi_filtered = filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
         if multi.size == 0:
             st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to previous data set.")
@@ -175,7 +165,7 @@ def update_filters():
                 st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to default data set.")
                 multi_filtered = multi_filtered0
             update_index = True
-        st.session_state["b_update_data"] = False
+        st.session_state["b_update_data_batch"] = False
         st.session_state["prev_data"] = multi_filtered
     else:
         multi_filtered = st.session_state["prev_data"]
@@ -197,7 +187,16 @@ update_index = update_filters()
 if update_index == True \
     or "proxy_indices" not in st.session_state \
     or "prev_iteration_mode" not in st.session_state \
-    or st.session_state.prev_iteration_mode != st.session_state.iteration_selection:
+    or st.session_state.prev_iteration_mode != st.session_state.iteration_selection \
+    or len(st.session_state.proxy_indices) != multi_filtered.shape[0]:
+    #the above if statements test for:
+    # 0) data has been updated for filters
+    # 1) proxy_indices have been initialized
+    # 2) iteration_mode has been set
+    # 3) iteration_mode has been toggled
+    # 4) light check that data has been resized/re-filtered by single-mol evaluation
+    # mostly, should rely on `b_update_data_batch` to know if data has been updated or not
+    # i.e. don't have to know about the other page!
 
     proxy_indices = np.arange(multi_filtered.shape[0])
     if st.session_state.iteration_selection == "random":
@@ -250,10 +249,13 @@ data_rxn.iloc[data_slice.index.unique("molid")]
 mols = []
 svgs = []
 molids = []
+rxn_names = []
 for row in data_slice.iterrows():
     mols.append( Chem.MolFromSmiles(row[1].smiles) )
     molids.append( row[0][0] )
+    rxn_names.append( row[0][2] )
     ftn_group_ids = ast.literal_eval(row[0][1]) #depends on ordering of index; should get ids of atoms in ftnl group.
+    
     highlightcolors,highlightbonds = mychem.color_ftn(mols[-1],ftn_group_ids)
     im = mychem.highlight_draw(mols[-1],highlightcolors,highlightbonds,format="svg",
                                wd=250,ht=250)
@@ -291,6 +293,7 @@ rating_scale = ("skip","1: bad","2","3: interesting","4","5: good")
 n_rows = int(mols_per_page/3)
 
 entries = []
+entries_general = []
 for ia in range(n_rows):
     with st.container():
         cols = st.columns(3)
@@ -300,8 +303,12 @@ for ia in range(n_rows):
                 if index_abs < len(svgs):
                     st.image( svgs[index_abs] )
                     st.write(f"case `{index_abs + ind0}`, **mol ID: `{molids[index_abs]}`**")
-                    entries.append( st.selectbox("**quality for ...**",
+                    entries.append( st.selectbox(f"**quality for `{rxn_names[index_abs]}` polymerization**",
                                                 rating_scale,
                                                 key=f"entry_{index_abs}"
+                                                ))
+                    entries_general.append( st.selectbox("**overall monomer quality**",
+                                                rating_scale,
+                                                key=f"entry_general_{index_abs}"
                                                 ))
                 #data_slice.iloc[ia*3 + ic]
