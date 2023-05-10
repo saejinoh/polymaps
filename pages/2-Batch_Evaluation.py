@@ -139,11 +139,10 @@ if "prev_data" not in st.session_state: #first time through
         multi_filtered = multi
     st.session_state["prev_data"] = multi_filtered
 
-    if iterate_by_matchidx:
-        st.session_state["data_index"] = generate_index_by_matchid(multi_filtered)
-        
-    else:
-        st.session_state["data_index"] = generate_index(multi_filtered)
+    #if iterate_by_matchidx:
+    #    st.session_state["data_index"] = generate_index_by_matchid(multi_filtered)
+    #else:
+    #    st.session_state["data_index"] = generate_index(multi_filtered)
 else:
     multi_filtered = st.session_state["prev_data"]
 molids = multi_filtered.index.get_level_values("molid").unique()
@@ -158,9 +157,8 @@ def set_update_data_flag(flag):
     st.session_state["b_update_data"] = flag
 
 
-
-update_index = False
 def update_filters():
+    update_index = False
     if st.session_state["b_update_data"]:
         tmp_multi_filtered = filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
         if multi.size == 0:
@@ -186,10 +184,16 @@ def update_filters():
             st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to default data set.")
             multi_filtered = multi_filtered0
             update_index = True
-
     set_update_data_flag(False)
+    return update_index
 
-update_filters()
+# prune multi_filtered (keep only one entry per unique multi index)
+multi_filtered = multi_filtered[ ~multi_filtered.index.duplicated(keep='first') ]
+
+
+# update proxy index
+update_index = update_filters()
+
 if update_index == True \
     or "proxy_indices" not in st.session_state \
     or "prev_iteration_mode" not in st.session_state \
@@ -202,23 +206,22 @@ if update_index == True \
 else:
     proxy_indices = st.session_state["proxy_indices"]
 
+
+if "batch_page" not in st.session_state:
+    st.session_state["batch_page"] = 1 #change to 0
+
 if "prev_iteration_mode" not in st.session_state \
-    or st.session_state.prev_iteration_mode != st.session_state.iteration_selection\
-    or "batch_page" not in st.session_state:
-    st.session_state["batch_page"] = 10 #change to 0
+    or st.session_state.prev_iteration_mode != st.session_state.iteration_selection:
+    st.session_state["batch_page"] = 1 #change to 0
 
 st.session_state["prev_iteration_mode"] = st.session_state.iteration_selection
 
 
-
 # ===== Page number
 if "mols_per_page" not in st.session_state:
-    st.session_state.mols_per_page = 24
-mols_per_page = st.session_state.mols_per_page
+    st.session_state["mols_per_page"] = 24
+mols_per_page = st.session_state.mols_per_page #TODO: need to persist this widget...!
 last_page_index = int(np.floor( len(proxy_indices)/mols_per_page ))
-
-
-# page number entry
 
 # retrieve block indices
 def get_page_indices(page):
@@ -239,12 +242,31 @@ def get_page_indices(page):
 ind0,ind1 = get_page_indices( st.session_state.batch_page )
 
 
+# generate images of molecules
+data_slice = multi_filtered.iloc[proxy_indices[ind0:ind1]]
+data_slice
+data_rxn.iloc[data_slice.index.unique("molid")]
+
+mols = []
+svgs = []
+molids = []
+for row in data_slice.iterrows():
+    mols.append( Chem.MolFromSmiles(row[1].smiles) )
+    molids.append( row[0][0] )
+    ftn_group_ids = ast.literal_eval(row[0][1]) #depends on ordering of index; should get ids of atoms in ftnl group.
+    highlightcolors,highlightbonds = mychem.color_ftn(mols[-1],ftn_group_ids)
+    im = mychem.highlight_draw(mols[-1],highlightcolors,highlightbonds,format="svg",
+                               wd=250,ht=250)
+    svgs.append(im)
+
 # ===== Display
 with st.sidebar:
     def get_closest_page():
+        st.session_state.mols_per_page = st.session_state.mols_per_page_widget
         st.session_state["batch_page"] = 1 + int( np.floor( ind0/st.session_state.mols_per_page ) )
 
-    st.select_slider("**Results per page**",(12,24,48,96),key="mols_per_page",on_change=get_closest_page)
+    st.select_slider("**Results per page**",(12,24,48,96),value = st.session_state.mols_per_page,
+                     key="mols_per_page_widget",on_change=get_closest_page)
     
     def store_page():
         st.session_state.batch_page = int(st.session_state.batch_page_text)
@@ -259,7 +281,27 @@ with st.sidebar:
     st.button("next page",on_click = page_forward)
     st.button("previous page",on_click = page_backward)
 
-
+# Main Text
 st.markdown(f"## Page `{st.session_state.batch_page}`/`{last_page_index+1}`")
-st.markdown(f"- **results {ind0+1}~{ind1}**")
-st.write( proxy_indices[ind0:ind1] )
+#st.markdown(f"- **results {ind0+1}~{ind1}**")
+#st.write( proxy_indices[ind0:ind1] )
+
+# Entry Area
+rating_scale = ("skip","1: bad","2","3: interesting","4","5: good")
+n_rows = int(mols_per_page/3)
+
+entries = []
+for ia in range(n_rows):
+    with st.container():
+        cols = st.columns(3)
+        for ic,col in enumerate(cols):
+            index_abs = ia*3 + ic
+            with col:
+                if index_abs < len(svgs):
+                    st.image( svgs[index_abs] )
+                    st.write(f"case `{index_abs + ind0}`, **mol ID: `{molids[index_abs]}`**")
+                    entries.append( st.selectbox("**quality for ...**",
+                                                rating_scale,
+                                                key=f"entry_{index_abs}"
+                                                ))
+                #data_slice.iloc[ia*3 + ic]
