@@ -79,6 +79,10 @@ if "base_data" not in st.session_state:
 else:
     multi,data_rxn = st.session_state["base_data"]
 
+# prune multi (keep only one entry per unique multi index)
+multi = multi[ ~multi.index.duplicated(keep='first') ]
+
+
 # ===== Chemical Utilities
 rxn_name_alias = {"simple":"alkene-linear"}
 rxn_name_alias_reverse = {"alkene-linear":"simple"}
@@ -137,11 +141,6 @@ if "prev_data" not in st.session_state: #first time through
     if multi_filtered.size == 0:
         multi_filtered = multi
     st.session_state["prev_data"] = multi_filtered
-
-    #if iterate_by_matchidx:
-    #    st.session_state["data_index"] = generate_index_by_matchid(multi_filtered)
-    #else:
-    #    st.session_state["data_index"] = generate_index(multi_filtered)
 else:
     multi_filtered = st.session_state["prev_data"]
 molids = multi_filtered.index.get_level_values("molid").unique()
@@ -186,12 +185,11 @@ def update_filters():
     set_update_data_flag(False)
     return update_index
 
-# prune multi_filtered (keep only one entry per unique multi index)
-multi_filtered = multi_filtered[ ~multi_filtered.index.duplicated(keep='first') ]
-
 
 # update proxy index
 update_index = update_filters()
+multi_filtered = st.session_state["prev_data"]
+
 
 if update_index == True \
     or "proxy_indices" not in st.session_state \
