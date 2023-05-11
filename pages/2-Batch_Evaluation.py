@@ -275,6 +275,7 @@ for row in data_slice.iterrows():
     svgs.append(im)
 
 # ===== Display
+# --- actions
 def log():
     """save results of this page
     Notes:
@@ -301,19 +302,34 @@ def log():
 
         #general ratings
         comment_dict = copy.copy(root_dict)
-        comment_dict["comments_ftn"] = ""
-        comment_dict["comments_mol"] = ""
+        if "skip" not in st.session_state[f"entry_other_{ii}"]:
+            comment_dict["comments_ftn"] = \
+                st.session_state[f"entry_other_name_{ii}"] \
+                + "; " + st.session_state[f"entry_other_{ii}"]
+        else:
+            comment_dict["comments_ftn"] = ""
+        comment_dict["comments_mol"] = st.session_state[f"entry_comments_{ii}"].strip()
         comment_dict["rating_mol"] = st.session_state[f"entry_general_{ii}"]
-        if "skip" not in comment_dict["rating_mol"]:
-            tmp_df = st.session_state.eval_mol
-            tmp_slice = tmp_df[ (tmp_df.molid == molid) 
-                                & (tmp_df.molidx == molidx) ]
-            if tmp_slice.size > 0:
-                if comment_dict["rating_mol"] != tmp_slice.iloc[-1].rating_mol:
-                    #only save if different from previous result, or not saved
-                    mol_ratings.append(comment_dict)
-            else: #always save if not in previous results
+        tmp_df = st.session_state.eval_mol
+        tmp_slice = tmp_df[ (tmp_df.molid == molid) 
+                            & (tmp_df.molidx == molidx) ]
+        
+        if "skip" in comment_dict["rating_mol"]\
+            and comment_dict["comments_ftn"] == ""\
+            and comment_dict["comments_mol"].strip() == "":
+            #always skip if blank result
+            pass
+        else: #check if need to save
+            if tmp_slice.size == 0:
+                #always save if no previous results (and already know that it's not blank)
                 mol_ratings.append(comment_dict)
+            else:
+                if comment_dict["comments_ftn"] not in tmp_slice.comments_ftn.values \
+                    or comment_dict["comments_mol"] not in tmp_slice.comments_mol.values \
+                    or comment_dict["rating_mol"] != tmp_slice.iloc[-1].rating_mol:
+                    #only save if any of the values are different from previous results
+                    mol_ratings.append(comment_dict)
+
         st.session_state[f"entry_general_{ii}"] = rating_scale[0] #reset
 
         #detailed ratings
@@ -333,6 +349,23 @@ def log():
             else: #not in previous results
                 rxn_ratings.append(rxn_rating_dict)
         st.session_state[f"entry_{ii}"] = rating_scale[0] #reset
+
+        #other ratings
+        rxn_rating_dict = copy.copy(root_dict)
+        rxn_rating_dict["rxn_name"] = st.session_state[f"entry_other_name_{ii}"]
+        rxn_rating_dict["rating"] = st.session_state[f"entry_other_{ii}"]
+        if "skip" not in rxn_rating_dict["rating"]:
+            tmp_df = st.session_state.eval_details
+            tmp_slice = tmp_df[ (tmp_df.molid == molid)
+                            & (tmp_df.molidx == molidx)
+                            & (tmp_df.rxn_name == rxn_name)   ]
+            if tmp_slice.size > 0:
+                if rxn_rating_dict["rating"] != tmp_slice.iloc[-1].rating:
+                    #only save if different from previous result
+                    rxn_ratings.append(rxn_rating_dict)
+            else: #not in previous results
+                rxn_ratings.append(rxn_rating_dict)
+
 
     # save
     mol_ratings_df = pd.DataFrame(mol_ratings)
@@ -390,6 +423,7 @@ def save_only():
     if valid_email:
         log()
     
+# --- Sidebar
 with st.sidebar:
     if not valid_email:
         st.markdown("**Enter a valid e-mail on Settings page to submit evaluations.**")
@@ -405,7 +439,7 @@ with st.sidebar:
     st.button("Save & Previous page",on_click = page_backward)
     st.button("Save",on_click = save_only)
 
-# Main Text
+# --- Main Text
 #st.markdown(f"- **results {ind0+1}~{ind1}**")
 #st.write( proxy_indices[ind0:ind1] )
 
@@ -445,9 +479,9 @@ for ia in range(n_rows):
                         if st.session_state[f"entry_{index_abs}_load"]: 
                             if tmp_slice.size > 0:
                                 st.session_state[f"entry_{index_abs}"] = tmp_slice.iloc[-1].rating
-                                st.session_state[f"entry_{index_abs}_load"] = False #False after first reload
                             else:
                                 st.session_state[f"entry_{index_abs}"] = rating_scale[0]
+                            st.session_state[f"entry_{index_abs}_load"] = False #False after first reload
                         #otherwise, just keep result
 
                         tmp_df = st.session_state.eval_mol
@@ -459,10 +493,10 @@ for ia in range(n_rows):
                             if tmp_slice.size > 0:
                                 #if previous result exists, and in reload mode
                                 st.session_state[f"entry_general_{index_abs}"] = tmp_slice.iloc[-1].rating_mol
-                                st.session_state[f"entry_general_{index_abs}_load"] = False #False after first reload
                             else:
                                 #new molecule, go to default value
                                 st.session_state[f"entry_general_{index_abs}"] = rating_scale[0]
+                            st.session_state[f"entry_general_{index_abs}_load"] = False #False after first reload
                         #otherwise, just keep result
 
 
@@ -509,7 +543,6 @@ for ia in range(n_rows):
 
 # final state handling
 if st.session_state[f"entry_other_reset"]:
-    import time
     st.session_state[f"entry_other_reset"] = False
 
     # scroll to top taken from: https://discuss.streamlit.io/t/no-way-to-set-focus-at-top-of-screen-on-page-reload-really/15474/13
