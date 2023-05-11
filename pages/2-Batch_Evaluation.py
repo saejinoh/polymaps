@@ -12,6 +12,10 @@ st.set_page_config(layout="wide")
 rating_scale = ("skip","1: bad","2","3: interesting","4","5: good")
 rating_scale = ("skip (don't answer)","0: N/A","1: impossible","2: bad potential","3: workable potential","4: promising potential","5: almost definitely works")
 rating_scale_index = {entry:ix for ix,entry in enumerate(rating_scale)}
+rxn_name_alias = {"simple":"alkene-linear"}
+rxn_name_alias_reverse = {"alkene-linear":"simple"}
+if "entry_other_reset" not in st.session_state:
+    st.session_state["entry_other_reset"] = True
 
 # database connection
 import gspread_pdlite as gspdl
@@ -246,7 +250,7 @@ def get_page_indices(page):
 ind0,ind1 = get_page_indices( st.session_state.batch_page )
 
 
-# generate images of molecules
+# ===== generate images of molecules, all the information
 data_slice = multi_filtered.iloc[proxy_indices[ind0:ind1]]
 #data_slice
 #data_rxn.iloc[data_slice.index.unique("molid")]
@@ -259,7 +263,8 @@ rxn_names = []
 for row in data_slice.iterrows():
     mols.append( Chem.MolFromSmiles(row[1].smiles) )
     molids.append( row[0][0] )
-    rxn_names.append( row[0][2] )
+    rxn_name = row[0][2]
+    rxn_names.append( rxn_name_alias[rxn_name] if rxn_name in rxn_name_alias else rxn_name )
     molidxs.append( row[0][1] ) #leave as string
     ftn_group_ids = ast.literal_eval(row[0][1]) #depends on ordering of index; should get ids of atoms in ftnl group.
     
@@ -300,18 +305,36 @@ def log():
         comment_dict["comments_mol"] = ""
         comment_dict["rating_mol"] = st.session_state[f"entry_general_{ii}"]
         if "skip" not in comment_dict["rating_mol"]:
-            mol_ratings.append(comment_dict)
+            tmp_df = st.session_state.eval_mol
+            tmp_slice = tmp_df[ (tmp_df.molid == molid) 
+                                & (tmp_df.molidx == molidx) ]
+            if tmp_slice.size > 0:
+                if comment_dict["rating_mol"] != tmp_slice.iloc[-1].rating_mol:
+                    #only save if different from previous result, or not saved
+                    mol_ratings.append(comment_dict)
+            else: #always save if not in previous results
+                mol_ratings.append(comment_dict)
         st.session_state[f"entry_general_{ii}"] = rating_scale[0] #reset
 
         #detailed ratings
         rxn_rating_dict = copy.copy(root_dict)
         rxn_rating_dict["rxn_name"] = rxn_name
         rxn_rating_dict["rating"] = st.session_state[f"entry_{ii}"]
+
         if "skip" not in rxn_rating_dict["rating"]:
-            rxn_ratings.append(rxn_rating_dict)
+            tmp_df = st.session_state.eval_details
+            tmp_slice = tmp_df[ (tmp_df.molid == molid)
+                            & (tmp_df.molidx == molidx)
+                            & (tmp_df.rxn_name == rxn_name)   ]
+            if tmp_slice.size > 0:
+                if rxn_rating_dict["rating"] != tmp_slice.iloc[-1].rating:
+                    #only save if different from previous result
+                    rxn_ratings.append(rxn_rating_dict)
+            else: #not in previous results
+                rxn_ratings.append(rxn_rating_dict)
         st.session_state[f"entry_{ii}"] = rating_scale[0] #reset
 
-    #save
+    # save
     mol_ratings_df = pd.DataFrame(mol_ratings)
     st.session_state["eval_mol"] = pd.concat([ st.session_state["eval_mol"], 
                                                  mol_ratings_df],
@@ -331,6 +354,12 @@ def log():
         ws = sheet.worksheet(st.secrets.data.name_details)
         gspdl.worksheet_append( ws, rxn_ratings_df )
 
+    # state variable on refresh, reminder to reload data
+    for ii in range(data_slice.shape[0]):
+        st.session_state[f"entry_{ii}_load"] = True
+        st.session_state[f"entry_general_{ii}_load"] = True
+# end log
+
 valid_email = not ("userinfo" not in st.session_state \
                 or st.session_state["userinfo"] in ["",None] \
                 or "@" not in st.session_state["userinfo"])
@@ -340,17 +369,24 @@ def get_closest_page():
     st.session_state["batch_page"] = 1 + int( np.floor( ind0/st.session_state.mols_per_page ) )
     if valid_email:
         log()
+    st.session_state["entry_other_reset"] = True
 def page_forward():
     st.session_state.batch_page = min(last_page_index+1, st.session_state.batch_page + 1)
     if valid_email:
         log()
+    st.session_state["entry_other_reset"] = True
 def page_backward():
     st.session_state.batch_page = max(1, st.session_state.batch_page - 1)
     if valid_email:
         log()
+    st.session_state["entry_other_reset"] = True
 def store_page():
     st.session_state.batch_page = int(st.session_state.batch_page_text)
     st.session_state.batch_page_text = ""
+    if valid_email:
+        log()
+    st.session_state["entry_other_reset"] = True
+def save_only():
     if valid_email:
         log()
     
@@ -360,13 +396,14 @@ with st.sidebar:
 
     st.markdown(f"## Page `{st.session_state.batch_page}`/`{last_page_index+1}`")
 
-    st.select_slider("**Results per page**",(12,24,48,96),value = st.session_state.mols_per_page,
+    st.select_slider("**Results per page**",(12,24,36,48),value = st.session_state.mols_per_page,
                      key="mols_per_page_widget",on_change=get_closest_page)
     
-    st.text_input("**Jump to page**",value = "", key="batch_page_text",
+    st.text_input("**Save & Jump to page**",value = "", key="batch_page_text",
                   on_change=store_page)
-    st.button("next page",on_click = page_forward)
-    st.button("previous page",on_click = page_backward)
+    st.button("Save & Next page",on_click = page_forward)
+    st.button("Save & Previous page",on_click = page_backward)
+    st.button("Save",on_click = save_only)
 
 # Main Text
 #st.markdown(f"- **results {ind0+1}~{ind1}**")
@@ -391,28 +428,45 @@ for ia in range(n_rows):
                         current_rxn = rxn_names[index_abs]
                         current_molidx = molidxs[index_abs]
 
-                        if current_molid in st.session_state.eval_mol.molid.values \
-                            and current_molidx in st.session_state.eval_mol.molidx.values: #retrieve previous result for mol
-                            tmp_df = st.session_state.eval_mol
-                            tmp_slice = tmp_df[ (tmp_df.molid == current_molid) 
-                                               & (tmp_df.molidx == current_molidx) ]
-                            initial_mol_rating = rating_scale_index[tmp_slice.iloc[-1].rating_mol]
-                            st.session_state[f"entry_general_{index_abs}"] = tmp_slice.iloc[-1].rating_mol
-                        else:
-                            initial_mol_rating = 0
-                        
-                        if current_molid in st.session_state.eval_details.molid.values \
-                            and current_rxn in st.session_state.eval_details.rxn_name.values \
-                            and current_molidx in st.session_state.eval_details.molidx.values: #retrieve previous result for rxn_rating
-                            tmp_df = st.session_state.eval_details
-                            tmp_slice = tmp_df[ (tmp_df.molid == current_molid)
-                                               & (tmp_df.molidx == current_molidx)
-                                               & (tmp_df.rxn_name == current_rxn)   ]
-                            initial_rxn_rating = rating_scale_index[tmp_slice.iloc[-1].rating]
-                            st.session_state[f"entry_{index_abs}"] = tmp_slice.iloc[-1].rating
-                        else:
-                            initial_rxn_rating = 0
+                        # DUE to streamlit behavior,
+                        # We need to manually figure out when to and not to load and persist 
+                        # widget values. Here, we only refresh
+                        if st.session_state[f"entry_other_reset"]:
+                            st.session_state[f"entry_other_name_{index_abs}"] = "other (write in comments)"
+                            st.session_state[f"entry_other_{index_abs}"] = rating_scale[0]
+                            st.session_state[f"entry_comments_{index_abs}"] = ""
 
+                        tmp_df = st.session_state.eval_details
+                        tmp_slice = tmp_df[ (tmp_df.molid == current_molid)
+                                            & (tmp_df.molidx == current_molidx)
+                                            & (tmp_df.rxn_name == current_rxn)   ]
+                        if f"entry_{index_abs}_load" not in st.session_state:
+                            st.session_state[f"entry_{index_abs}_load"] = True
+                        if st.session_state[f"entry_{index_abs}_load"]: 
+                            if tmp_slice.size > 0:
+                                st.session_state[f"entry_{index_abs}"] = tmp_slice.iloc[-1].rating
+                                st.session_state[f"entry_{index_abs}_load"] = False #False after first reload
+                            else:
+                                st.session_state[f"entry_{index_abs}"] = rating_scale[0]
+                        #otherwise, just keep result
+
+                        tmp_df = st.session_state.eval_mol
+                        tmp_slice = tmp_df[ (tmp_df.molid == current_molid) 
+                                            & (tmp_df.molidx == current_molidx) ]
+                        if f"entry_general_{index_abs}_load" not in st.session_state:
+                            st.session_state[f"entry_general_{index_abs}_load"] = True
+                        if st.session_state[f"entry_general_{index_abs}_load"]:
+                            if tmp_slice.size > 0:
+                                #if previous result exists, and in reload mode
+                                st.session_state[f"entry_general_{index_abs}"] = tmp_slice.iloc[-1].rating_mol
+                                st.session_state[f"entry_general_{index_abs}_load"] = False #False after first reload
+                            else:
+                                #new molecule, go to default value
+                                st.session_state[f"entry_general_{index_abs}"] = rating_scale[0]
+                        #otherwise, just keep result
+
+
+                        # Actually create the entries
                         entries.append( st.selectbox(f"**quality for `{rxn_names[index_abs]}` polymerization**",
                                                 rating_scale,
                                                 key=f"entry_{index_abs}",
@@ -421,6 +475,56 @@ for ia in range(n_rows):
                                                 rating_scale,
                                                 key=f"entry_general_{index_abs}",
                                                 ))
+                        
+                        #if f"container_state_{index_abs}" not in st.session_state:
+                        #    st.session_state[f"container_state_{index_abs}"] = False
+                        #if st.session_state[f"entry_other_reset"]:
+                        #    st.session_state[f"container_state_{index_abs}"] = False
+                        #    container =  st.expander("**Manually enter comments and other reactions**",
+                        #        expanded=True) #force open, experimental re run will then close
+                        #else:
+                        #    container =  st.expander("**Manually enter comments and other reactions**",
+                        #        expanded = False)
+                        if st.session_state["entry_other_reset"]:
+                            container =  st.expander("**Manually enter comments and other reactions**",
+                                expanded=True) #force open on reset. Experimental rerun and close on next refresh.
+                        else:
+                            container =  st.expander("**Manually enter comments and other reactions**",
+                                expanded=False)
+
+                        with container:
+                            rxn_types_with_other = ["other (write in comments)"]
+                            rxn_types_with_other.extend(st.session_state.rxn_types)
+                            st.selectbox("**choose polymerization motif**",
+                                         rxn_types_with_other,key=f"entry_other_name_{index_abs}")
+                            st.selectbox(f"**quality for polymerization**",
+                                                rating_scale,
+                                                key=f"entry_other_{index_abs}",
+                                                )
+                            st.text_area("other comments: (use atom indices if needed)",
+                                         "",key=f"entry_comments_{index_abs}")
                     else:
                         st.write(f"identified for: `{rxn_names[index_abs]}`")
                 #data_slice.iloc[ia*3 + ic]
+
+# final state handling
+if st.session_state[f"entry_other_reset"]:
+    import time
+    st.session_state[f"entry_other_reset"] = False
+
+    # scroll to top taken from: https://discuss.streamlit.io/t/no-way-to-set-focus-at-top-of-screen-on-page-reload-really/15474/13
+    js = '''
+    f"""
+        <p>{st.session_state.batch_page}</p>
+        <script>
+            window.parent.document.querySelector('section.main').scrollTo(0, 0);
+        </script>
+    """,
+    height=0
+    '''
+    st.components.v1.html(js)
+    time.sleep(st.session_state.mols_per_page/12 * 0.5) 
+    #roughly need 0.2s per 12 results to open/close all expanders
+    #or 0.4s per 12 results if want to properly jump to top of page
+    st.experimental_rerun()
+
