@@ -1,4 +1,5 @@
 import streamlit as st
+st.set_page_config(layout="wide")
 import pandas as pd
 import os, time
 from rdkit import Chem
@@ -6,7 +7,9 @@ from rdkit.Chem import Descriptors
 import st_utils, app_utils
 import gspread_pdlite as gspdl # database connection
 
-st.session_state["settings_initialized"] = True
+if "settings_initialized" not in st.session_state:
+    app_utils.initialize()
+    st.session_state["settings_initialized"] = True
 st_utils.set_font(widget=16)
 
 
@@ -18,55 +21,68 @@ def set_update_data_flag(flag):
 
 # ===== ===== BEGIN LAYOUT ===== =====
 st.markdown("# Welcome!")
-st.markdown("- On this page, you can choose some basic filters for the molecules to view, as well as leave general comments about the process, monomers, etc.  \n")
-st.markdown("- On the `Evaluation` tab (in the sidebar), you will be shown monomers, with one highlighted functional group at a time, and the opportunity to rate the suitability of the functional groups for polymerization. \n  - Rating is on a scale of `1 (bad)` - `3 (interesting)` - `5 (good)`. Default is `0 to skip` judging. \n  - *The first load may take a few minutes!* \n")
-st.markdown("- On the `Results` tab, you can view your top-rated molecules, and optionally download a `.csv` of all molecules that you've rated.")
+cols = st.columns(2)
+with cols[0]:
+    st.markdown("- On this page, you can choose some basic filters for the molecules to view, as well as leave general comments about the process, monomers, etc.")
+    st.markdown("- Ratings can be given for for the polymerization potential of both specific functional groups as well as the monomer overall.")
+    st.markdown("- The scale is `1 (impossible)` - `3 (potentially workable)` - `5 (probably works)`. There is also an option to skip answering, or mark an identified (functional group, reaction) pairing as N/A.")
+with cols[1]:
+    st.markdown("- On the `Batch Evaluation` page, you can rate multiple functional groups and molecules at a time.")
+    st.markdown("- On the `Evaluation` page, you will rate one molecule at a time, and have the opportunity to give more thorough assessments of the molecule.")
+    st.markdown("- On the `Results` tab, you can view your top-rated molecules, and optionally download a `.csv` of all molecules that you've rated.")
 
-user_info = st_utils.persist_widget( st.text_input, "email",
-                               key = "userinfo", val0="",
-                               on_change = lambda: None)
+#st.markdown("- On the `Evaluation` tab (in the sidebar), you will be shown monomers, with one highlighted functional group at a time, and the opportunity to rate the suitability of the functional groups for polymerization. \n  - *The first load may take a few minutes!* \n")
 
-if "userinfo" in st.session_state \
-    and st.session_state["userinfo"] not in ["",None] \
-    and "@" in st.session_state["userinfo"]:
-    load_previous = st.button("(Optional): load all previous session results",
-                              on_click=app_utils.load_user_session)
 
-# ===== Navigation =====
-#st.markdown("## Navigation & Settings")
-#st.markdown("### On next molecule, show...")
-rxn_selection = st_utils.persist_widget( st.selectbox, "polymerization motif",
-                               key = "rxn_selection", val0 = "choose for me!",
-                               options = ("choose for me!",*st.session_state["rxn_types"]),
-                               on_change = lambda: set_update_data_flag(True))
+cols = st.columns(2)
 
-iteration_selection = st_utils.persist_widget( st.selectbox,
-                                     "molecule presentation mode: (sequential or random)",
-                                     options = ("random","sequential"),
-                                     key="iteration_selection",
-                                     val0 = "sequential",
-                                     on_change = lambda: set_update_data_flag(True))
+with cols[0]:
+    user_info = st_utils.persist_widget( st.text_input, "email",
+                                key = "userinfo", val0="",
+                                on_change = lambda: None)
 
-# MW
-slider_MW = st_utils.persist_widget(st.slider, "MW range",
-                            min_value = 0., max_value = st.session_state.max_MW,
-                            key = "slider_MW",
-                            val0 = (0.,250.),
-                            on_change = lambda: set_update_data_flag(True) )
+    if "userinfo" in st.session_state \
+        and st.session_state["userinfo"] not in ["",None] \
+        and "@" in st.session_state["userinfo"]:
+        load_previous = st.button("(Optional): load all previous session results",
+                                on_click=app_utils.load_user_session)
 
-# Simplicity/Complexity
-# (# of polymerizations identified, # functional groups, # subsitutents)
-slider_num_ftn_specific = st_utils.persist_widget(st.slider,"number of selected (above) potentially polymerizable functional groups. If none selected, defaults to any identified functinoal group.",
-                            min_value = 1, max_value = st.session_state.max_numftn,
-                            on_change = lambda: set_update_data_flag(True),
-                            key="slider_num_ftn_specific",
-                            val0 = (1,3) )
+    # ===== Navigation =====
+    #st.markdown("## Navigation & Settings")
+    #st.markdown("### On next molecule, show...")
+    rxn_selection = st_utils.persist_widget( st.selectbox, "polymerization motif",
+                                key = "rxn_selection", val0 = "choose for me!",
+                                options = ("choose for me!",*st.session_state["rxn_types"]),
+                                on_change = lambda: set_update_data_flag(True))
 
-slider_num_ftn = st_utils.persist_widget(st.slider,"number of (any) potentially polymerizable functional groups",
-                            min_value = 1, max_value = st.session_state.max_numftn,
-                            on_change = lambda: set_update_data_flag(True),
-                            key="slider_num_ftn",
-                            val0 = (1,4) )
+    iteration_selection = st_utils.persist_widget( st.selectbox,
+                                        "molecule presentation mode: (sequential or random)",
+                                        options = ("random","sequential"),
+                                        key="iteration_selection",
+                                        val0 = "random",
+                                        on_change = lambda: set_update_data_flag(True))
+
+with cols[1]:
+    # MW
+    slider_MW = st_utils.persist_widget(st.slider, "MW range",
+                                min_value = 0., max_value = st.session_state.max_MW,
+                                key = "slider_MW",
+                                val0 = (0.,250.),
+                                on_change = lambda: set_update_data_flag(True) )
+
+    # Simplicity/Complexity
+    # (# of polymerizations identified, # functional groups, # subsitutents)
+    slider_num_ftn_specific = st_utils.persist_widget(st.slider,"Number of selected potentially polymerizable functional groups. If no polymerization type selected, same as next filter.",
+                                min_value = 1, max_value = st.session_state.max_numftn,
+                                on_change = lambda: set_update_data_flag(True),
+                                key="slider_num_ftn_specific",
+                                val0 = (1,5) )
+
+    slider_num_ftn = st_utils.persist_widget(st.slider,"Number of (any) potentially polymerizable functional groups",
+                                min_value = 1, max_value = st.session_state.max_numftn,
+                                on_change = lambda: set_update_data_flag(True),
+                                key="slider_num_ftn",
+                                val0 = (1,5) )
 
 # Bulkiness
 

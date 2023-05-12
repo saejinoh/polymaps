@@ -18,13 +18,14 @@ import st_utils, app_utils
 st_utils.set_font()
 st_utils.set_sidebar(max_width=650, min_width=550)
 
-# Database connection
-import gspread_pdlite as gspdl
-sheet = st.session_state["backend_sheet"]
-
 # Preamble
 if "settings_initialized" not in st.session_state:
     st.markdown("# Upon browser refresh, please revisit Settings page first.")
+    st.stop()
+
+# Database connection
+import gspread_pdlite as gspdl
+sheet = st.session_state["backend_sheet"]
 
 # ===== Settings and initialization
 quality_dict = {0:"poor",1:"decent",2:"promising"} # unused

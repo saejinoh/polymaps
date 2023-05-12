@@ -13,16 +13,18 @@ import mychem
 
 # Streamlit imports
 import streamlit as st
+st.set_page_config(layout="wide")
 import st_utils, app_utils
 st_utils.set_font()
-
-# Database connection
-import gspread_pdlite as gspdl
-sheet = st.session_state["backend_sheet"] #alias for convenience
 
 # Preamble
 if "settings_initialized" not in st.session_state:
     st.markdown("# Upon browser refresh, please revisit Settings page first.")
+    st.stop()
+
+# Database connection
+import gspread_pdlite as gspdl
+sheet = st.session_state["backend_sheet"] #alias for convenience
 
 # ===== Settings and initialization
 # Constants
@@ -384,8 +386,17 @@ for ia in range(n_rows):
 # final state handling
 if st.session_state[f"entry_other_reset"]:
     st.session_state[f"entry_other_reset"] = False
-    st_utils.scroll_top()
-    time.sleep(st.session_state.mols_per_page/12 * 0.5) 
+    js = '''
+    f"""
+        <p>{st.session_state.batch_page}</p>
+        <script>
+            window.parent.document.querySelector('section.main').scrollTo(0, 0);
+        </script>
+    """,
+    height=0
+    '''
+    st.components.v1.html(js)
+    time.sleep(st.session_state.mols_per_page/12 * 1) 
     #roughly need 0.2s per 12 results to open/close all expanders
     #or 0.4s per 12 results if want to properly jump to top of page
     st.experimental_rerun()

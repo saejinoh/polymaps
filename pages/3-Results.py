@@ -1,4 +1,5 @@
 import streamlit as st
+st.set_page_config(layout="wide")
 from rdkit import Chem
 from rdkit.Chem import rdChemReactions
 from rdkit.Chem import Draw
