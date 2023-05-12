@@ -11,10 +11,6 @@ st_utils.set_font(widget=16)
 
 
 # ===== Setup =====
-if "b_update_data" not in st.session_state:
-    st.session_state["b_update_data"] = False
-if "b_update_data_batch" not in st.session_state:
-    st.session_state["b_update_data_batch"] = False
 def set_update_data_flag(flag):
     st.session_state["b_update_data"] = flag
     st.session_state["b_update_data_batch"] = flag
@@ -112,3 +108,5 @@ with st.sidebar:
 
 # Preload data
 app_utils.first_load()
+app_utils.update_filters()
+st.write(f"Molecules left after filtering: `{st.session_state.prev_data.index.unique('molid').size}`")

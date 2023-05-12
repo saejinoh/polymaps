@@ -8,28 +8,50 @@ import os
 # ===== Notes
 # Global variables in session_state:
 # < load/initialize once >
-# - backend_sheet:      output data worksheet
+# - backend_sheet           output data worksheet
 # - data_rxn
 # - rxn_types
-# - base_data: (multi_index data, data_rxn)
+# - multi
+# - base_data               (multi_index bare data, data_rxn)
+# - max_MW                  from data_rxn
+# - max_numftn              from data_rxn
+
 
 # < storage >
 # - eval_general
-# - eval_mol        (can load from backend)
-# - eval_details    (can load from backend)
+# - eval_mol                (can load from backend)
+# - eval_details            (can load from backend)
+# - prev_data               filtered data
+
+# - proxy_indices           for batch evaluation
+# - entry_comments_{ii}     molecule comments
+# - entry_general_{ii}      overall molecule rating
+# - entry_{ii}              rating for assigned reaction
+# - entry_other_{ii}        rating for manually entered reaction
+# - entry_other_name_{ii}   manually entered reaction name
+
 
 # < state trackers >
 # - settings_initialized
 # - b_update_data
-# - b_update_data_batch
+
+# - b_update_data_batch         for batch evaluation
+# - entry_other_reset       
+# - entry_{ii}_load             whether to load
+# - entry_general_{ii}_load     whether to try to load old data    
+# - batch_page
+
 
 # < settings (e.g. from widgets) >
 # - userinfo
-# - rxn_selection       (from a slider)
+# - rxn_selection           (from a slider)
 # - iteration_selection 
 # - slider_MW
 # - slider_num_ftn_specific
 # - slider_num_ftn
+
+# - mols_per_page           for batch evaluation
+# - mols_per_page_widget    manual persistence, since need to cast to an integer and store and clear
 
 # < dynamic >
 
@@ -43,10 +65,18 @@ rating_scale = ("skip","1: bad","2","3: interesting","4","5: good")
 rating_scale = ("skip (don't answer)","0: N/A","1: impossible","2: bad potential","3: workable potential","4: promising potential","5: almost definitely works")
 rating_scale_index = {entry:ix for ix,entry in enumerate(rating_scale)}
 
+# ===== System state
+if "b_update_data" not in st.session_state:
+    st.session_state["b_update_data"] = False
+if "b_update_data_batch" not in st.session_state:
+    st.session_state["b_update_data_batch"] = False
 
 # ===== Functions
 
 # ----- I/O
+# For read-only, use google sheets with export:
+# https://stackoverflow.com/questions/36096194/where-can-i-host-a-csv-so-i-can-directly-read-it-into-a-neo4j-database
+
 @st.cache_resource(ttl=600)
 def load_sheet():
     sheet = gspdl.open_sheet(st.secrets.data.google_key, st.secrets["gcp_service_account"])
@@ -157,6 +187,74 @@ def filter_rxn(data, data_rxn, rxn_name = None):
     return sub_data
 
 
+# ----- Processing
+def update_filters():
+    multi = st.session_state["multi"]
+    multi_filtered0 = filter_rxn(multi,data_rxn,None)
+    if multi_filtered0.size == 0:
+        multi_filtered = multi
+
+    if st.session_state["b_update_data"]:
+        tmp_multi_filtered = filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
+        if multi.size == 0:
+            st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to previous data set.")
+            if st.session_state["prev_data"].size == 0:
+                multi_filtered = multi_filtered0
+            else:
+                multi_filtered = st.session_state["prev_data"]
+        else:
+            multi_filtered = tmp_multi_filtered
+            if multi_filtered.size == 0:
+                st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to default data set.")
+                multi_filtered = filter_rxn(multi,data_rxn,None)
+        st.session_state["prev_data"] = multi_filtered
+    else:
+        multi_filtered = st.session_state["prev_data"]
+        if multi_filtered.size == 0:
+            st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to default data set.")
+            multi_filtered = multi_filtered0
+
+    st.session_state["b_update_data"] = False
+
+
+def update_filters_legacy():
+    """Old update filter used for batch_updates
+
+    Returns:
+        bool: whether or not to update proxy index
+
+    Notes:
+        Decided against fine-grained case-control, since generating proxy indices is pretty cheap anyway
+    """
+    update_index = False
+    if st.session_state["b_update_data"]:
+        tmp_multi_filtered = app_utils.filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
+        if multi.size == 0:
+            st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to previous data set.")
+            if st.session_state["prev_data"].size == 0:
+                multi_filtered = multi_filtered0
+                update_index = True
+            else:
+                multi_filtered = st.session_state["prev_data"]
+                update_index = False
+        else:
+            multi_filtered = tmp_multi_filtered
+            if multi_filtered.size == 0:
+                st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to default data set.")
+                multi_filtered = multi_filtered0
+            update_index = True
+        st.session_state["b_update_data_batch"] = False
+        st.session_state["prev_data"] = multi_filtered
+    else:
+        multi_filtered = st.session_state["prev_data"]
+        update_index = False
+        if multi_filtered.size == 0:
+            st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to default data set.")
+            multi_filtered = multi_filtered0
+            update_index = True
+    set_update_data_flag(False)
+    return update_index
+
 
 # ===== Preprocessing
 # backend data connection
@@ -212,5 +310,22 @@ def first_load():
     if "base_data" not in st.session_state:
         multi,data_rxn = load_data()
         st.session_state["base_data"] = (multi,data_rxn)
+        st.session_state["multi"] = multi
+        st.session_state["data_rxn"] = data_rxn 
+        #note that this data_rxn will have `num_ftn` and `MW` imputed.
+        #in principle, should *already* be in data_rxn 
+
+        # for batch evaluation, don't care about substituents. 
+        # prune first (keep only one entry per unique multi index).
+        # st.session_state["multi_rxn_unique"] = multi[ ~multi.index.duplicated(keep='first') ] 
+
+    if "prev_data" not in st.session_state: #first filter
+        if "rxn_selection" in st.session_state:
+            multi_filtered = filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
+        else:
+            multi_filtered = filter_rxn(multi,data_rxn,None)
+        if multi_filtered.size == 0:
+            multi_filtered = multi
+        st.session_state["prev_data"] = multi_filtered
 
 
