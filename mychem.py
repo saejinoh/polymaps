@@ -202,8 +202,6 @@ def eval_functional_group(mol,smarts,base):
 
     return matches,res
 
-
-
 # ===== Visualization Helpers
 def color_scaffold(mol,core_bool):
     n_atoms = mol.GetNumAtoms()
@@ -266,7 +264,6 @@ def color_ftn(mol,ftn_group_ids):
 
     #return scaffold, free, rgroup_roots
     return highlightcolors,highlightbonds
-
 
 def highlight_draw(mol,highlight_colors,highlight_bonds={},wd=550,ht=350,format="png",atomIndices=True):
     num = mol.GetNumAtoms()
