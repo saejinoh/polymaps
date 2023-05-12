@@ -85,10 +85,10 @@ def load_data():
         return st.session_state["base_data"][0], st.session_state["base_data"][0]
 
     # functional group data
-    filename = homedir + "/../data/" + "fg_analysis_2023-04-21.csv"
-    data_df = pd.read_csv(filename,index_col=False)
-    #url = gspdl.urlfy(st.secrets.data.fgroups_key)
-    #data_df = gspdl.url_to_df(url) #still slow (~30 seconds)
+    #filename = homedir + "/../data/" + "fg_analysis_2023-04-21.csv"
+    #data_df = pd.read_csv(filename,index_col=False)
+    url = gspdl.urlfy(st.secrets.data.fgroups_key)
+    data_df = gspdl.url_to_df(url) #still slow (~30 seconds)
 
     #sheet = gspdl.open_sheet(st.secrets.data.fgroups_key,st.secrets["gcp_service_account"])
     #ws = sheet.get_worksheet(0)

@@ -128,7 +128,7 @@ app_utils.update_filters()
 st.markdown(f"#### Molecules left after filtering: `{st.session_state.prev_data.index.unique('molid').size}`")
 st.markdown("**Distribution of potential polymerization motifs:**")
 
-# Visualize
+# Visualize distribution
 counts = []
 multi_index, data_rxn = st.session_state["prev_data"], st.session_state["data_rxn"]
 molids = multi_index.index.unique("molid")
