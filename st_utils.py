@@ -102,3 +102,15 @@ def set_sidebar(max_width=650,min_width=550):
     """
     st.markdown(contents, unsafe_allow_html=True)
 
+# scroll to top taken from: https://discuss.streamlit.io/t/no-way-to-set-focus-at-top-of-screen-on-page-reload-really/15474/13
+def scroll_top():    
+    js = '''
+    f"""
+        <p>{st.session_state.batch_page}</p>
+        <script>
+            window.parent.document.querySelector('section.main').scrollTo(0, 0);
+        </script>
+    """,
+    height=0
+    '''
+    st.components.v1.html(js)
