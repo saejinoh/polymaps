@@ -65,6 +65,7 @@ rating_scale = ("skip (don't answer)","0: N/A","1: impossible","2: bad potential
 rating_scale_index = {entry:ix for ix,entry in enumerate(rating_scale)}
 
 remove_step = False
+read_local  = False
 
 # ===== System state
 
@@ -85,10 +86,12 @@ def load_data():
         return st.session_state["base_data"][0], st.session_state["base_data"][0]
 
     # functional group data
-    #filename = homedir + "/../data/" + "fg_analysis_2023-04-21.csv"
-    #data_df = pd.read_csv(filename,index_col=False)
-    url = gspdl.urlfy(st.secrets.data.fgroups_key)
-    data_df = gspdl.url_to_df(url) #still slow (~30 seconds)
+    if read_local:
+        filename = homedir + "/../data/" + "fg_analysis_2023-05-12b.csv"
+        data_df = pd.read_csv(filename,index_col=False)
+    else:
+        url = gspdl.urlfy(st.secrets.data.fgroups_key)
+        data_df = gspdl.url_to_df(url) #still slow (~30 seconds)
 
     #sheet = gspdl.open_sheet(st.secrets.data.fgroups_key,st.secrets["gcp_service_account"])
     #ws = sheet.get_worksheet(0)
@@ -105,10 +108,12 @@ def load_data():
 
 
     # functional group count data; makes initial filtering easier
-    #filename = homedir + "/../../data/" + "rxntypes_2023-04-21.csv"
-    #data_rxn = pd.read_csv(filename,index_col=False)
-    url = gspdl.urlfy(st.secrets.data.data_rxn_key)
-    data_rxn = gspdl.url_to_df(url)
+    if read_local:
+        filename = homedir + "/../data/" + "rxntypes_2023-05-12b.csv"
+        data_rxn = pd.read_csv(filename,index_col=False)
+    else:
+        url = gspdl.urlfy(st.secrets.data.data_rxn_key)
+        data_rxn = gspdl.url_to_df(url)
 
     # evaluations
     # evaluate #ftnl groups identified
@@ -318,6 +323,8 @@ def initialize():
         st.session_state["b_update_data"] = True
     if "b_update_data_batch" not in st.session_state:
         st.session_state["b_update_data_batch"] = True
+    if "b_update_data_single" not in st.session_state:
+        st.session_state["b_update_data_single"] = True
 
     # backend data connection
     if "backend_sheet" not in st.session_state:
@@ -336,11 +343,13 @@ def initialize():
 
     # data_rxn
     if "data_rxn" not in st.session_state:
-        url = gspdl.urlfy(st.secrets.data.data_rxn_key)
-        st.session_state["data_rxn"] = gspdl.url_to_df(url)
-        #filename = homedir + "/../data/" + "rxntypes_2023-04-10.csv"
-        #data_rxn = pd.read_csv(filename,index_col=False)
-        #st.session_state["data_rxn"] = data_rxn
+        if read_local:
+            filename = homedir + "/../data/" + "rxntypes_2023-05-12b.csv"
+            data_rxn = pd.read_csv(filename,index_col=False)
+            st.session_state["data_rxn"] = data_rxn
+        else:
+            url = gspdl.urlfy(st.secrets.data.data_rxn_key)
+            st.session_state["data_rxn"] = gspdl.url_to_df(url)
     data_rxn = st.session_state["data_rxn"]
     data_rxn
 

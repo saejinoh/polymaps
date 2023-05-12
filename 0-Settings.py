@@ -17,6 +17,7 @@ st_utils.set_font(widget=16)
 def set_update_data_flag(flag):
     st.session_state["b_update_data"] = flag
     st.session_state["b_update_data_batch"] = flag
+    st.session_state["b_update_data_single"] = flag
 
 
 # ===== ===== BEGIN LAYOUT ===== =====
@@ -29,7 +30,8 @@ with cols[0]:
 with cols[1]:
     st.markdown("- On the `Batch Evaluation` page, you can rate multiple functional groups and molecules at a time.")
     st.markdown("- On the `Evaluation` page, you will rate one molecule at a time, and have the opportunity to give more thorough assessments of the molecule.")
-    st.markdown("- On the `Results` tab, you can view your top-rated molecules, and optionally download a `.csv` of all molecules that you've rated.")
+    st.markdown("- On the `Results` page, you can view your top-rated molecules, and optionally download a `.csv` of all molecules that you've rated.")
+    st.markdown("- On the `FAQ` page you'll find additional information.")
 
 #st.markdown("- On the `Evaluation` tab (in the sidebar), you will be shown monomers, with one highlighted functional group at a time, and the opportunity to rate the suitability of the functional groups for polymerization. \n  - *The first load may take a few minutes!* \n")
 

@@ -32,10 +32,10 @@ quality_dict = {0:"poor",1:"decent",2:"promising"} # unused
 index = {"molid":0, "rxn_name":1, "ftn_id":2, "matchid":3} # unused
 
 # State tracking
-if "b_update_data" not in st.session_state:
-    st.session_state["b_update_data"] = False
+if "b_update_data_single" not in st.session_state:
+    st.session_state["b_update_data_single"] = False
 def set_update_data_flag(flag):
-    st.session_state["b_update_data"] = flag
+    st.session_state["b_update_data_single"] = flag
 
 # ===== Loading
 # Load data
@@ -304,7 +304,7 @@ multi_filtered0 = app_utils.filter_rxn(multi,data_rxn,None) #default data set if
 
 # ===== Sidebar and submission logic
 def update_filters():
-    if st.session_state["b_update_data"]:
+    if st.session_state["b_update_data_single"]:
         tmp_multi_filtered = app_utils.filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
         if multi.size == 0:
             st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to previous data set.")
@@ -317,7 +317,7 @@ def update_filters():
             if multi_filtered.size == 0:
                 st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to previous data set.")
                 multi_filtered = multi_filtered0
-        st.session_state["b_update_data"] = False
+        st.session_state["b_update_data_single"] = False
         st.session_state["prev_data"] = multi_filtered
     else:
         multi_filtered = st.session_state["prev_data"]
@@ -392,7 +392,6 @@ def submit_update(molid=None,log=True):
     # only update data after submission
     update_filters()
     multi_filtered = st.session_state["prev_data"]
-
     # update index
     if iterate_by_matchidx:
         st.session_state["data_index"]= generate_index_by_matchid(multi_filtered)
@@ -414,7 +413,7 @@ def clear_input():
         st.session_state["molid_input"] = "" #callbacks are executed before everything, so the session_state can be set *before* the input field is declared/defined.
 
 
-if st.session_state["b_update_data"]: #in multipage form, make sure we always update when we come back from the settings page, IF THE SETTINGS WERE CHANGED
+if st.session_state["b_update_data_single"]: #in multipage form, make sure we always update when we come back from the settings page, IF THE SETTINGS WERE CHANGED
     submit_update(log=False)
     # note that sidebar loads data again, multi_filtered = st.session_state["prev_data"]
 
