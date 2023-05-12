@@ -125,4 +125,47 @@ with st.sidebar:
 # Preload data
 app_utils.first_load()
 app_utils.update_filters()
-st.write(f"Molecules left after filtering: `{st.session_state.prev_data.index.unique('molid').size}`")
+st.markdown(f"#### Molecules left after filtering: `{st.session_state.prev_data.index.unique('molid').size}`")
+st.markdown("**Distribution of potential polymerization motifs:**")
+
+# Visualize
+counts = []
+multi_index, data_rxn = st.session_state["prev_data"], st.session_state["data_rxn"]
+molids = multi_index.index.unique("molid")
+filtered_data_rxn = data_rxn.loc[molids]
+for rxn_name in st.session_state["rxn_types"]:
+    valid_molids = app_utils.get_valid_reactions( filtered_data_rxn, (1,50), rxn_name )
+    counts.append(valid_molids.size)
+
+import numpy as np
+ks = np.array( st.session_state["rxn_types"] )
+vs = np.array(counts)
+sort_index = np.argsort( np.array(counts) )
+import matplotlib.pyplot as plt
+cols = st.columns(2)
+
+with cols[0]:
+    # Top 10
+    fig, ax = plt.subplots(figsize=(2, 2))
+    y_pos = np.arange(len(counts))
+    rs = st.session_state["rxn_types"]
+    ktmp,vtmp = ks[sort_index[-1:-11:-1]], vs[sort_index[-1:-11:-1]] 
+    ytmp = np.arange(len(ktmp))
+    ax.barh(ytmp,vtmp)
+    ax.set_yticks(ytmp, ktmp,fontsize=6)
+    ax.invert_yaxis()
+    ax.set_xlabel("count")
+    st.pyplot(fig)
+
+with cols[1]:
+    # Bottom
+    fig, ax = plt.subplots(figsize=(2, 2))
+    y_pos = np.arange(len(counts))
+    rs = st.session_state["rxn_types"]
+    ktmp,vtmp = ks[sort_index[-11::-1]], vs[sort_index[-11::-1]] 
+    ytmp = np.arange(len(ktmp))
+    ax.barh(ytmp,vtmp)
+    ax.set_yticks(ytmp, ktmp,fontsize=6)
+    ax.invert_yaxis()
+    ax.set_xlabel("count")
+    st.pyplot(fig)
