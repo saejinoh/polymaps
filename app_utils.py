@@ -1,5 +1,4 @@
 import streamlit as st
-st.set_page_config(layout="wide")
 import numpy as np
 import pandas as pd
 import gspread_pdlite as gspdl
@@ -62,14 +61,12 @@ rxn_name_alias = {"simple":"alkene-linear"}
 rxn_name_alias_reverse = {"alkene-linear":"simple"}
 
 rating_scale = ("skip","1: bad","2","3: interesting","4","5: good")
-rating_scale = ("skip (don't answer)","0: N/A","1: impossible","2: bad potential","3: workable potential","4: promising potential","5: almost definitely works")
+rating_scale = ("skip (don't answer)","0: N/A","1: impossible","2: bad potential","3: workable potential","4: promising potential","5: probably works")
 rating_scale_index = {entry:ix for ix,entry in enumerate(rating_scale)}
 
+remove_step = False
+
 # ===== System state
-if "b_update_data" not in st.session_state:
-    st.session_state["b_update_data"] = False
-if "b_update_data_batch" not in st.session_state:
-    st.session_state["b_update_data_batch"] = False
 
 # ===== Functions
 
@@ -146,6 +143,53 @@ def load_user_session():
 
 
 # ----- Analysis
+def get_valid_reactions(data_rxn, bounds, rxn_name = None):
+    """Returns molids of molecules that satisfy rxn_name
+    Arguments:
+        bounds (list, tuple): range to sit within
+    """
+    if rxn_name in rxn_name_alias_reverse:        
+        rxn_name = rxn_name_alias_reverse[rxn_name]
+        
+
+    if rxn_name is None or "choose" in rxn_name:
+        # In this case, count unique ftnl groups via multi_index data
+        #multi_onlymolidmatchidx = multi.reset_index()[["molid","matchidx"]]
+        #res = multi_onlymolidmatchidx.reset_index().set_index("molid").groupby(["molid"]).agg("nunique").matchidx
+        #valid_molids = res.index.values
+        valid_molids = data_rxn.loc[ 
+            (data_rxn.num_ftn >= bounds[0]) & 
+            (data_rxn.num_ftn <= bounds[1]) ].index.values
+    elif "step" not in rxn_name:
+        #valid_molids = data_rxn[ data_rxn[rxn_name] > 0 ].index.values
+        valid_molids = data_rxn.loc[ 
+            (data_rxn[rxn_name] >= bounds[0]) & 
+            (data_rxn[rxn_name] <= bounds[1]) ].index.values
+    else:
+        # step reactions, need to count tuples that are not (0, 0) or '(0, 0)'
+        tmp = data_rxn[rxn_name]
+        import ast
+        def transform(x):
+            if isinstance(x,str):
+                return ast.literal_eval(x)
+            else:
+                return x
+        tmp = tmp.map(transform)
+
+        def validate(x):
+            # a bit ambiguous what it means for a step ftn, which has multiple ftnl groups, to satisfy the condition
+            # here, we interpret as either ftnl group satisfying the criterion
+            # e.g. for diels alder would want an & condition
+            if x[0] >= bounds[0] and x[0] <= bounds[1] \
+                or x[1] >= bounds[0] and x[1] <= bounds[1]:
+                return True
+            else:
+                return False
+        valid_molids = tmp[tmp.map(validate)].index.values
+        #valid_molids = data_rxn[ (tmp != (0, 0)) & (tmp != "(0, 0)") ].index.values
+        
+    return valid_molids
+
 def filter_rxn(data, data_rxn, rxn_name = None):
     """return molids that are consistent"""
     # TMP, remove step reactions
@@ -155,15 +199,18 @@ def filter_rxn(data, data_rxn, rxn_name = None):
     # filter by reaction name. TODO: step reactions needs adjustment
     if rxn_name is None or rxn_name == "choose for me!":
         # TMP, remove step reactions
-        sub_data = data.iloc[ ~data.index.get_level_values("rxn_name").isin(step_rxn_names) ]
+        if remove_step:
+            sub_data = data.iloc[ ~data.index.get_level_values("rxn_name").isin(step_rxn_names) ]
         sub_data = data
         inds = sub_data.index.get_level_values("molid").unique().values
     else:
         # filter by rxn_name
-        if rxn_name in rxn_name_alias:
+        if rxn_name in rxn_name_alias_reverse:
             rxn_name = rxn_name_alias_reverse[rxn_name]
+        
+        #inds = np.argwhere( (data_rxn[rxn_name]>0).values ).flatten() #alternative way to filter
+        #inds = get_valid_reactions(data_rxn,(0,50),rxn_name)
 
-        inds = np.argwhere( (data_rxn[rxn_name]>0).values ).flatten() #alternative way to filter
         #sub_data = data.query("molid in @inds")
         rxns_of_interest = [rxn_name]
         sub_data = data.query("rxn_name in @rxns_of_interest")
@@ -183,20 +230,30 @@ def filter_rxn(data, data_rxn, rxn_name = None):
             (data_rxn.num_ftn <= st.session_state.slider_num_ftn[1]) ].index.values
         sub_data = sub_data.query( "molid in @inds_where_num_ftn_range")
 
+        # filter by number of specified functional groups
+        inds_where_num_ftn_specific = get_valid_reactions(
+            data_rxn,
+            (st.session_state.slider_num_ftn_specific[0],
+            st.session_state.slider_num_ftn_specific[1]),
+            rxn_name)
+        sub_data = sub_data.query( "molid in @inds_where_num_ftn_specific")
+    
     # return
     return sub_data
 
 
 # ----- Processing
 def update_filters():
+    data_rxn = st.session_state["data_rxn"]
     multi = st.session_state["multi"]
     multi_filtered0 = filter_rxn(multi,data_rxn,None)
     if multi_filtered0.size == 0:
-        multi_filtered = multi
-
+        multi_filtered0 = multi
+    
     if st.session_state["b_update_data"]:
         tmp_multi_filtered = filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
-        if multi.size == 0:
+
+        if tmp_multi_filtered.size == 0:
             st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to previous data set.")
             if st.session_state["prev_data"].size == 0:
                 multi_filtered = multi_filtered0
@@ -213,7 +270,6 @@ def update_filters():
         if multi_filtered.size == 0:
             st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to default data set.")
             multi_filtered = multi_filtered0
-
     st.session_state["b_update_data"] = False
 
 
@@ -257,53 +313,60 @@ def update_filters_legacy():
 
 
 # ===== Preprocessing
-# backend data connection
-if "backend_sheet" not in st.session_state:
-    st.session_state["backend_sheet"] = load_sheet()
+def initialize():
+    if "b_update_data" not in st.session_state:
+        st.session_state["b_update_data"] = True
+    if "b_update_data_batch" not in st.session_state:
+        st.session_state["b_update_data_batch"] = True
+
+    # backend data connection
+    if "backend_sheet" not in st.session_state:
+        st.session_state["backend_sheet"] = load_sheet()
 
 
-# user log that will be stored to backend
-if "eval_details" not in st.session_state:
-    #store mol-level under rxn_name = "general"
-    st.session_state["eval_details"] = pd.DataFrame(columns=["molid","molidx","rxn_name","smiles","userinfo","timestamp","rating"])
-if "eval_mol" not in st.session_state:
-    st.session_state["eval_mol"] = pd.DataFrame(columns=["molid","molidx","smiles","userinfo","timestamp","comments_ftn","comments_mol","rating_mol"])
-if "eval_general" not in st.session_state:
-    st.session_state["eval_general"] = pd.DataFrame(columns=["molid","molidx","smiles","userinfo","timestamp","comments_general"])
+    # user log that will be stored to backend
+    if "eval_details" not in st.session_state:
+        #store mol-level under rxn_name = "general"
+        st.session_state["eval_details"] = pd.DataFrame(columns=["molid","molidx","rxn_name","smiles","userinfo","timestamp","rating"])
+    if "eval_mol" not in st.session_state:
+        st.session_state["eval_mol"] = pd.DataFrame(columns=["molid","molidx","smiles","userinfo","timestamp","comments_ftn","comments_mol","rating_mol"])
+    if "eval_general" not in st.session_state:
+        st.session_state["eval_general"] = pd.DataFrame(columns=["molid","molidx","smiles","userinfo","timestamp","comments_general"])
 
 
-# data_rxn
-if "data_rxn" not in st.session_state:
-    url = gspdl.urlfy(st.secrets.data.data_rxn_key)
-    st.session_state["data_rxn"] = gspdl.url_to_df(url)
-    #filename = homedir + "/../data/" + "rxntypes_2023-04-10.csv"
-    #data_rxn = pd.read_csv(filename,index_col=False)
-    #st.session_state["data_rxn"] = data_rxn
-data_rxn = st.session_state["data_rxn"]
+    # data_rxn
+    if "data_rxn" not in st.session_state:
+        url = gspdl.urlfy(st.secrets.data.data_rxn_key)
+        st.session_state["data_rxn"] = gspdl.url_to_df(url)
+        #filename = homedir + "/../data/" + "rxntypes_2023-04-10.csv"
+        #data_rxn = pd.read_csv(filename,index_col=False)
+        #st.session_state["data_rxn"] = data_rxn
+    data_rxn = st.session_state["data_rxn"]
+    data_rxn
 
+    # rxn_types
+    if "rxn_types" not in st.session_state:
+        rxn_types = data_rxn.columns.values
+        # TMP: eliminate step reactions
+        if remove_step:
+            rxn_types = [x for x in rxn_types if not x.startswith("step") and x != "smiles"]
+            rxn_types = rxn_types[:-2]
+        else:
+            rxn_types = rxn_types[:-3] #last two elements should be MW and rxn and smiles
+        names_to_alias = []
+        for ix,x in enumerate(rxn_types):
+            if x in rxn_name_alias: #e.g. simple -> alkene-linear
+                names_to_alias.append( (ix,x) )
+        for ix,x in names_to_alias:
+            rxn_types[ix] = rxn_name_alias[x]
+        st.session_state["rxn_types"] = rxn_types
+    rxn_types = st.session_state["rxn_types"]
 
-# rxn_types
-if "rxn_types" not in st.session_state:
-    rxn_types = data_rxn.columns.values
-    # TMP: eliminate step reactions
-    rxn_types = [x for x in rxn_types if not x.startswith("step") and x != "smiles"]
-    rxn_types = rxn_types[:-3] #last two elements should be MW and rxn
-    names_to_alias = []
-    for ix,x in enumerate(rxn_types):
-        if x in rxn_name_alias: #e.g. simple -> alkene-linear
-            names_to_alias.append( (ix,x) )
-    for ix,x in names_to_alias:
-        rxn_types[ix] = rxn_name_alias[x]
-    st.session_state["rxn_types"] = rxn_types
-rxn_types = st.session_state["rxn_types"]
-
-
-# some data_rxn metrics
-if "max_MW" not in st.session_state:
-    st.session_state["max_MW"] = float(data_rxn.MW.max())
-if "max_numftn" not in st.session_state:
-    st.session_state["max_numftn"] = int(data_rxn.num_ftn.max())
-
+    # some data_rxn metrics
+    if "max_MW" not in st.session_state:
+        st.session_state["max_MW"] = float(data_rxn.MW.max())
+    if "max_numftn" not in st.session_state:
+        st.session_state["max_numftn"] = int(data_rxn.num_ftn.max())
 
 # molecule data
 def first_load():
