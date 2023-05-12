@@ -1,27 +1,5 @@
 # Main imports
-import streamlit as st
-import time
-import os
-import ast
-import copy
-homedir = os.path.dirname(__file__)
-import myformat
-
-st.set_page_config(layout="wide")
-
-myformat.set_sidebar(max_width=650, min_width=550)
-myformat.set_font()
-
-# database connection
-import gspread_pdlite as gspdl
-@st.cache_resource
-def load_sheet():
-    sheet = gspdl.open_sheet(st.secrets.data.google_key, st.secrets["gcp_service_account"])
-    return sheet
-sheet = load_sheet()
-
-# For read-only, use google sheets with export:
-# https://stackoverflow.com/questions/36096194/where-can-i-host-a-csv-so-i-can-directly-read-it-into-a-neo4j-database
+import time, os, ast, copy
 
 # Analysis imports
 import random
@@ -34,85 +12,39 @@ from rdkit.Chem import Draw
 import mychem
 iterate_by_matchidx = False
 
+# Streamlit and web imports
+import streamlit as st
+import st_utils, app_utils
+st_utils.set_font()
+st_utils.set_sidebar(max_width=650, min_width=550)
 
-@st.cache_data(ttl=600)
-def load_data():
-    if "base_data" in st.session_state:
-        return st.session_state["base_data"][0], st.session_state["base_data"][0]
+# Database connection
+import gspread_pdlite as gspdl
+sheet = st.session_state["backend_sheet"]
 
-    # functional group data
-    #filename = homedir + "/../../data/" + "fg_analysis_2023-04-21.csv"
-    #data_df = pd.read_csv(filename,index_col=False)
-    url = gspdl.urlfy(st.secrets.data.fgroups_key)
-    #st.write(url)
-    data_df = gspdl.url_to_df(url)
-    #sheet = gspdl.open_sheet(st.secrets.data.fgroups_key,st.secrets["gcp_service_account"])
-    #ws = sheet.get_worksheet(0)
-    #st.write(ws)
-    #data_df = gspdl.worksheet_to_df(ws)
+# Preamble
+if "settings_initialized" not in st.session_state:
+    st.markdown("# Upon browser refresh, please revisit Settings page first.")
 
-    #def toset(mystr):
-    #   return frozenset( ast.literal_eval(mystr))
-    #data_df["matchidx"] = data_df["matchidx"].map(toset)
-    if iterate_by_matchidx:
-        multi   = data_df.set_index(["molid","rxn_name","ftn_id","matchid"])
-    else:
-        multi = data_df.set_index(["molid","matchidx","rxn_name"])
+# ===== Settings and initialization
+quality_dict = {0:"poor",1:"decent",2:"promising"} # unused
+index = {"molid":0, "rxn_name":1, "ftn_id":2, "matchid":3} # unused
 
-    # functional group count data; makes initial filtering easier
-    #filename = homedir + "/../../data/" + "rxntypes_2023-04-21.csv"
-    #data_rxn = pd.read_csv(filename,index_col=False)
-    url = gspdl.urlfy(st.secrets.data.data_rxn_key)
-    data_rxn = gspdl.url_to_df(url)
-
-    # evaluations
-    # evaluate #ftnl groups identified
-    if "num_ftn" not in data_rxn.columns:
-        data_rxn["num_ftn"] = 0.
-
-        num_ftn = multi.reset_index().set_index("molid").groupby(["molid"]).agg("nunique").matchidx
-        data_rxn.loc[multi.index.unique("molid"),"num_ftn"] = num_ftn
-
-    # evaluate MW
-    if "MW" not in data_rxn.columns:
-        data_rxn["MW"] = 0.
-        def get_MW(row):
-            mol = Chem.MolFromSmiles(row.smiles)
-            row.MW = Descriptors.MolWt(mol)
-            return row
-        data_rxn = data_rxn.apply(get_MW,axis=1)
-
-    return multi,data_rxn
-
-
-if "base_data" not in st.session_state:
-    multi,data_rxn = load_data()
-    st.session_state["base_data"] = (multi,data_rxn)
-else:
-    multi,data_rxn = st.session_state["base_data"]
-
-# Key variable initializations
-if "max_MW" not in st.session_state:
-    st.session_state["max_MW"] = data_rxn.MW.max()
-if "max_numftn" not in st.session_state:
-    st.session_state["max_numftn"] = int(data_rxn.num_ftn.max())
-
-quality_dict = {0:"poor",1:"decent",2:"promising"}
-eprop_dict = {-1:"withdrawing", 1:"donating", 0:"undetermined"}
-index = {"molid":0, "rxn_name":1, "ftn_id":2, "matchid":3}
-#rxn_types = data_rxn.columns
-# TMP: eliminate step reactions
-#rxn_types = [x for x in rxn_types if not x.startswith("step") and x != "smiles"]
-
+# State tracking
 if "b_update_data" not in st.session_state:
     st.session_state["b_update_data"] = False
 def set_update_data_flag(flag):
     st.session_state["b_update_data"] = flag
 
+# ===== Loading
+# Load data
+if "base_data" not in st.session_state:
+    multi,data_rxn = app_utils.load_data()
+    st.session_state["base_data"] = (multi,data_rxn)
+else:
+    multi,data_rxn = st.session_state["base_data"]
 
 # ===== Chemical Utilities
-rxn_name_alias = {"simple":"alkene-linear"}
-rxn_name_alias_reverse = {"alkene-linear":"simple"}
 def random_molecule(data,rxn_name = None):
     """return a random molecule from the set"""
     molids = data.index.levels[0].unique().values
@@ -124,46 +56,6 @@ def random_molecule(data,rxn_name = None):
     subdata = multi.loc[(molid,slice(None),slice(None),slice(None))]
 
     return molid, num_mols, subdata
-
-def filter_rxn(data, data_rxn, rxn_name = None):
-    """return molids that are consistent"""
-    # TMP, remove step reactions
-    rxn_names = data.index.get_level_values("rxn_name")
-    step_rxn_names = [x for x in rxn_names if x.startswith("step")]
-
-    # filter by reaction name. TODO: step reactions needs adjustment
-    if rxn_name is None or rxn_name == "choose for me!":
-        # TMP, remove step reactions
-        sub_data = data.iloc[ ~data.index.get_level_values("rxn_name").isin(step_rxn_names) ]
-        sub_data = data
-        inds = sub_data.index.get_level_values("molid").unique().values
-    else:
-        # filter by rxn_name
-        if rxn_name in rxn_name_alias:
-            rxn_name = rxn_name_alias_reverse[rxn_name]
-
-        inds = np.argwhere( (data_rxn[rxn_name]>0).values ).flatten() #alternative way to filter
-        #sub_data = data.query("molid in @inds")
-        rxns_of_interest = [rxn_name]
-        sub_data = data.query("rxn_name in @rxns_of_interest")
-        #sub_data = sub_data[ sub_data.index.get_level_values(rxn_name).isin([rxn_name])] 
-
-    if "prev_data" in st.session_state and "slider_MW" in st.session_state:
-        # filter by MW
-        inds_where_MW_range = data_rxn.loc[ 
-            (data_rxn.MW>= st.session_state.slider_MW[0]) & 
-            (data_rxn.MW <= st.session_state.slider_MW[1]) ].index.values
-
-        sub_data = sub_data.query( "molid in @inds_where_MW_range")
-
-        # filter by number of functional groups
-        inds_where_num_ftn_range = data_rxn.loc[ 
-            (data_rxn.num_ftn>= st.session_state.slider_num_ftn[0]) & 
-            (data_rxn.num_ftn <= st.session_state.slider_num_ftn[1]) ].index.values
-        sub_data = sub_data.query( "molid in @inds_where_num_ftn_range")
-
-    # return
-    return sub_data
 
 def generate_index(multi_filtered,trial_molid=None):
     """Generate next molecule's index (and data) if needed
@@ -357,7 +249,7 @@ def characterize_substituents(match_specific_data):
     substituents = []
     for row in match_specific_data.iterrows():
         tmp_index, tmp_data = row
-        substituents.append( (tmp_data.subid, eprop_dict[tmp_data.electronics], tmp_data.bulkiness))
+        substituents.append( (tmp_data.subid, mychem.eprop_dict[tmp_data.electronics], tmp_data.bulkiness))
 
     n_substituents = len(substituents)
     evaluation = f"Functional group (colored in `green`) w/ atoms `{ftn_group_ids}`\n"
@@ -371,7 +263,7 @@ def characterize_substituents_by_matchid(match_specific_data):
     substituents = []
     for row in match_specific_data.iterrows():
         tmp_index, tmp_data = row
-        substituents.append( (tmp_data.subid, eprop_dict[tmp_data.electronics], tmp_data.bulkiness))
+        substituents.append( (tmp_data.subid, mychem.eprop_dict[tmp_data.electronics], tmp_data.bulkiness))
 
     ftn_group_ids = ast.literal_eval(match_specific_data.iloc[0].matchidx)
 
@@ -385,17 +277,13 @@ def characterize_substituents_by_matchid(match_specific_data):
 
 
 # ===== Load Data
-if "settings_initialized" not in st.session_state:
-    st.markdown("# Upon browser refresh, please revisit Settings page first.")
-
-
 if "prev_data" not in st.session_state \
     or "data_index" not in st.session_state \
     or "data_index_description" not in st.session_state: #first time through
     if "rxn_selection" in st.session_state:
-        multi_filtered = filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
+        multi_filtered = app_utils.filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
     else:
-        multi_filtered = filter_rxn(multi,data_rxn,None)
+        multi_filtered = app_utils.filter_rxn(multi,data_rxn,None)
     if multi_filtered.size == 0:
         multi_filtered = multi
     st.session_state["prev_data"] = multi_filtered
@@ -410,13 +298,13 @@ else:
 molids = multi_filtered.index.get_level_values("molid").unique()
 molnum = molids.values.size
 
-multi_filtered0 = filter_rxn(multi,data_rxn,None) #default data set if filters fail
+multi_filtered0 = app_utils.filter_rxn(multi,data_rxn,None) #default data set if filters fail
 
 
 # ===== Sidebar and submission logic
 def update_filters():
     if st.session_state["b_update_data"]:
-        tmp_multi_filtered = filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
+        tmp_multi_filtered = app_utils.filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
         if multi.size == 0:
             st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to previous data set.")
             if st.session_state["prev_data"].size == 0:
@@ -527,6 +415,7 @@ def clear_input():
 
 if st.session_state["b_update_data"]: #in multipage form, make sure we always update when we come back from the settings page, IF THE SETTINGS WERE CHANGED
     submit_update(log=False)
+    # note that sidebar loads data again, multi_filtered = st.session_state["prev_data"]
 
 
 with st.sidebar:
@@ -543,8 +432,6 @@ with st.sidebar:
             #st.markdown("(scoring scale: `0` to skip, `1`: bad, `3`: interesting, `5`: good)")
             st.markdown("(scoring scale: `1`: unworkable to `5`: almost definitely works)")
             radio_quality_list = []
-            rating_scale = ("skip","1: bad","2","3: interesting","4","5: good")
-            rating_scale = ("skip (don't answer)","0: N/A","1: impossible","2: bad potential","3: some potential","4: promising potential","5: almost definitely works")
 
             multi_filtered = st.session_state["prev_data"] 
             # data might have been updated by batch_evaluation, 
@@ -560,8 +447,8 @@ with st.sidebar:
 
             st.session_state["rxns_for_this_ftn_group"] = []
             for rxn_name in rxn_types:  
-                if rxn_name in rxn_name_alias:
-                    rxn_name = rxn_name_alias[rxn_name]
+                if rxn_name in app_utils.rxn_name_alias:
+                    rxn_name = app_utils.rxn_name_alias[rxn_name]
                 keyname = "rating_" + rxn_name
                 st.session_state["rxns_for_this_ftn_group"].append(keyname)
                 #radio_quality_list.append( st.radio(rxn_name + " polymerization",
@@ -570,7 +457,7 @@ with st.sidebar:
                 #                                    key = keyname)
                 #)
                 radio_quality_list.append( st.selectbox("**" + rxn_name + " polymerization**",
-                                                            rating_scale,
+                                                            app_utils.rating_scale,
                                                             key=keyname))
 
                 #radio_quality = st.radio("**Ftnl group quality**",("skip","bad","interesting","good"),horizontal=True)
@@ -584,7 +471,7 @@ with st.sidebar:
                 rxn_types_with_other.extend(st.session_state.rxn_types)
                 other_polymerization_motif = st.selectbox("**choose polymerization motif**",rxn_types_with_other,key="rating_other_name")
                 radio_quality_list.append( st.selectbox("**rating**",
-                                                        rating_scale,
+                                                        app_utils.rating_scale,
                                                         key="rating_other"))
                 st.session_state["rxns_for_this_ftn_group"].append("rating_other")
 
@@ -592,7 +479,7 @@ with st.sidebar:
 
             #radio_quality = st.radio("**Overall monomer quality**",("no comment","bad","interesting","good"),horizontal=True,key="rating_mol")
             radio_quality = st.selectbox("**Is the molecule interesting overall?**",
-                                                        rating_scale,
+                                                        app_utils.rating_scale,
                                                         key="rating_mol")
             text_form = st.text_area("comments on the monomer: (use atom indices if needed)","",key="comments_mol")
 
