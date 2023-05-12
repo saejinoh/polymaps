@@ -350,10 +350,13 @@ def log_evaluation():
     comment_dict["comments_ftn"] = st.session_state["comments_ftn"]
     comment_dict["comments_mol"] = st.session_state["comments_mol"]
     comment_dict["rating_mol"] = st.session_state["rating_mol"]
-    comment_dict_df = pd.DataFrame([comment_dict])
-    st.session_state["eval_mol"] = pd.concat([ st.session_state["eval_mol"], 
-                                                 comment_dict_df],
-                                                ignore_index=True)
+    if "skip" not in comment_dict["rating_mol"] \
+        and comment_dict["comments_ftn"].strip() != "" \
+        and comment_dict["comments_ftn"].strip() != "":
+        comment_dict_df = pd.DataFrame([comment_dict])
+        st.session_state["eval_mol"] = pd.concat([ st.session_state["eval_mol"], 
+                                                    comment_dict_df],
+                                                    ignore_index=True)
 
     # rxn-specific data
     rxn_ratings = []
@@ -376,8 +379,11 @@ def log_evaluation():
     st.session_state["eval_mol"].to_csv("eval_mol.csv",index=False)
     st.session_state["eval_details"].to_csv("eval_details.csv",index=False)
 
-    ws = sheet.worksheet(st.secrets.data.name_mol)
-    gspdl.worksheet_append( ws, comment_dict_df )
+    if "skip" not in comment_dict["rating_mol"] \
+        and comment_dict["comments_ftn"].strip() != "" \
+        and comment_dict["comments_ftn"].strip() != "":
+        ws = sheet.worksheet(st.secrets.data.name_mol)
+        gspdl.worksheet_append( ws, comment_dict_df )
 
     if rxn_ratings_dict_df.size > 0:
         ws = sheet.worksheet(st.secrets.data.name_details)
