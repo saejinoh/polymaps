@@ -18,7 +18,7 @@ st_utils.set_font()
 
 # Database connection
 import gspread_pdlite as gspdl
-sheet = st.session_state["backend_sheet"]
+sheet = st.session_state["backend_sheet"] #alias for convenience
 
 # Preamble
 if "settings_initialized" not in st.session_state:
@@ -141,12 +141,14 @@ def log():
         molid, molidx = molids[ii],molidxs[ii]
         rxn_name = rxn_names[ii]
 
+        # base information in dictionary
         root_dict["molid"],root_dict["molidx"] = molid, molidx
         root_dict["smiles"] = st.session_state["data_rxn"].loc[molid].smiles
         root_dict["userinfo"] = st.session_state["userinfo"]
         root_dict["timestamp"] = timestamp
 
         #general ratings
+        # --> comments first
         comment_dict = copy.copy(root_dict)
         if "skip" not in st.session_state[f"entry_other_{ii}"]:
             comment_dict["comments_ftn"] = \
@@ -155,11 +157,12 @@ def log():
         else:
             comment_dict["comments_ftn"] = ""
         comment_dict["comments_mol"] = st.session_state[f"entry_comments_{ii}"].strip()
+        # --> ratings
         comment_dict["rating_mol"] = st.session_state[f"entry_general_{ii}"]
+        # --> check if we should store or not
         tmp_df = st.session_state.eval_mol
         tmp_slice = tmp_df[ (tmp_df.molid == molid) 
                             & (tmp_df.molidx == molidx) ]
-        
         if "skip" in comment_dict["rating_mol"]\
             and comment_dict["comments_ftn"] == ""\
             and comment_dict["comments_mol"].strip() == "":
@@ -175,8 +178,8 @@ def log():
                     or comment_dict["rating_mol"] != tmp_slice.iloc[-1].rating_mol:
                     #only save if any of the values are different from previous results
                     mol_ratings.append(comment_dict)
-
-        st.session_state[f"entry_general_{ii}"] = rating_scale[0] #reset
+        # --> reset
+        st.session_state[f"entry_general_{ii}"] = rating_scale[0] 
 
         #detailed ratings
         rxn_rating_dict = copy.copy(root_dict)
@@ -211,7 +214,6 @@ def log():
                     rxn_ratings.append(rxn_rating_dict)
             else: #not in previous results
                 rxn_ratings.append(rxn_rating_dict)
-
 
     # save
     mol_ratings_df = pd.DataFrame(mol_ratings)
