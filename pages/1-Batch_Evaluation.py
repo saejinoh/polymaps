@@ -59,6 +59,7 @@ if st.session_state["b_update_data_batch"]:
     #since updating proxies is pretty cheap, always update proxy if filter is updated
     #don't do special multi_filtered checks
     app_utils.update_filters()
+    st.session_state["batch_page"] = 1
 
 # retrieve multi_filtered and prune (keep only one entry per unique multi index)
 multi_filtered = st.session_state["prev_data"]
