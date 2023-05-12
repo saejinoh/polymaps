@@ -19,25 +19,46 @@ def set_update_data_flag(flag):
     st.session_state["b_update_data_batch"] = flag
     st.session_state["b_update_data_single"] = flag
 
+st.markdown("""
+<style>
+.big-font {
+    font-size:20px !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ===== ===== BEGIN LAYOUT ===== =====
-st.markdown("# Welcome!")
+st.markdown("# Welcome to MAPS!")
+intro_text = """##### The goal of MAPS (see [slides](https://docs.google.com/presentation/d/1wbf9w7fOz857bkP1-JDzYartVtSpfVswCPmVemt8rW4/edit?usp=sharing)) is to prospectively find natural products that might be polymerized into interesting new materials. 
+##### However, to date there is ***no*** dataset that documents polymerization reactions, rendering it difficult to do reliable computational screens of the large natural product space. 
+##### This project will 1) crowd source the first chemical dataset with an explicit focus on polymerization feasibility, and 2) can be used by scientists to conduct initial explorations of natural products, with explicit focus on polymerization.
+##### The molecules here are pulled from the [natural product database](https://www.npatlas.org/). On this page there are some settings to filter that data set by polymerization functional motif, MW, etc.  You can submit your feedback on the evaluation pages.
+"""
+#st.markdown('<p class="big-font">'+intro_text+'</p>',unsafe_allow_html=True)
+st.markdown(intro_text)
+
 cols = st.columns(2)
 with cols[0]:
-    st.markdown("- On this page, you can choose some basic filters for the molecules to view, as well as leave general comments about the process, monomers, etc.")
-    st.markdown("- Ratings can be given for for the polymerization potential of both specific functional groups as well as the monomer overall.")
-    st.markdown("- The scale is `1 (impossible)` - `3 (potentially workable)` - `5 (probably works)`. There is also an option to skip answering, or mark an identified (functional group, reaction) pairing as N/A.")
+    expander_label = "Details -- what do I do with this webapp?"
+    with st.expander(expander_label, expanded = False):
+        st.markdown("- On this page, you can choose some basic filters for the molecules to view, as well as leave general comments about the process, monomers, etc.")
+        st.markdown("- Ratings can be given for for the polymerization potential of both specific functional groups as well as the monomer overall.")
+        st.markdown("- The scale is `1 (impossible)` - `3 (potentially workable)` - `5 (probably works)`. There is also an option to skip answering, or mark an identified (functional group, reaction) pairing as N/A.")
+    st_utils.change_widget_fontsize(expander_label,"18px")
 with cols[1]:
-    st.markdown("- On the `Batch Evaluation` page, you can rate multiple functional groups and molecules at a time.")
-    st.markdown("- On the `Evaluation` page, you will rate one molecule at a time, and have the opportunity to give more thorough assessments of the molecule.")
-    st.markdown("- On the `Results` page, you can view your top-rated molecules, and optionally download a `.csv` of all molecules that you've rated.")
-    st.markdown("- On the `FAQ` page you'll find additional information.")
-
+    expander_label = "What are all the pages in the side bar?"
+    with st.expander(expander_label, expanded = False):
+        st.markdown("- On the `Batch Evaluation` page, you can rate multiple functional groups and molecules at a time.")
+        st.markdown("- On the `Evaluation` page, you will rate one molecule at a time, and have the opportunity to give more thorough assessments of the molecule.")
+        st.markdown("- On the `Results` page, you can view your top-rated molecules, and optionally download a `.csv` of all molecules that you've rated.")
+        st.markdown("- On the `FAQ` page you'll find additional information.")
+    st_utils.change_widget_fontsize(expander_label,"18px")
 #st.markdown("- On the `Evaluation` tab (in the sidebar), you will be shown monomers, with one highlighted functional group at a time, and the opportunity to rate the suitability of the functional groups for polymerization. \n  - *The first load may take a few minutes!* \n")
 
 
+#expander_label = "Username and Filters"
+#with st.expander(expander_label, expanded=False):
 cols = st.columns(2)
-
 with cols[0]:
     user_info = st_utils.persist_widget( st.text_input, "email",
                                 key = "userinfo", val0="",
@@ -85,7 +106,7 @@ with cols[1]:
                                 on_change = lambda: set_update_data_flag(True),
                                 key="slider_num_ftn",
                                 val0 = (1,5) )
-
+#st_utils.change_widget_fontsize(expander_label,"18px")
 # Bulkiness
 
 # ===== Comments =====

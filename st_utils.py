@@ -87,9 +87,23 @@ div[class*="stTextArea"] > label > div[data-testid="stMarkdownContainer"] > p {{
 div[class*="row-widget stSelectbox"] > label > div[data-testid="stMarkdownContainer"] > p {{
     font-size: {widget}px;
 }}
+div[class*="streamlit-expanderHeader*"] > div[data-testid="stMarkdownContainer"] > p {{
+    font-size: {widget}px;
+}}
     </style>
         """
     st.markdown(contents, unsafe_allow_html=True)
+
+def change_widget_fontsize(wgt_txt, wch_font_size = '16px'):
+    """Taken from https://discuss.streamlit.io/t/modifying-the-font-size-of-a-st-expander-label/36040/7
+    """
+    htmlstr = """<script>var elements = window.parent.document.querySelectorAll('p'), i;
+                for (i = 0; i < elements.length; ++i) 
+                    { if (elements[i].textContent.includes(|wgt_txt|)) 
+                        { elements[i].style.fontSize ='""" + wch_font_size + """'; } }</script>  """
+
+    htmlstr = htmlstr.replace('|wgt_txt|', "'" + wgt_txt + "'")
+    st.components.v1.html(f"{htmlstr}", height=0, width=0)
 
 def set_sidebar(max_width=650,min_width=550):
     contents = f"""
