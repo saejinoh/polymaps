@@ -46,7 +46,8 @@ with cols[0]:
 with cols[1]:
     st.markdown("# Wishlist")
     st.markdown("""### 2023.05.10  
-- tutorial/guide (e.g. case studies to illustrate how to rate)
-- monomer -> polymer prediction
+- Divide up dataset into even blocks (w/ appropriate settings) for people to evaluate
+- Tutorial/guide (e.g. case studies to illustrate how to rate)
+- Monomer -> polymer and property prediction
 - Overview/statistics of aggregated ratings
 """)
