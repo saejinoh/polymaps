@@ -16,6 +16,8 @@ colors = []
 for c in colors_int:
     colors.append( (c[0]/256.,c[1]/256.,c[2]/256.) )
 
+# ===== Constants
+eprop_dict = {-1:"withdrawing", 1:"donating", 0:"undetermined"}
 
 # ===== Processing tools
 def mol_to_nx(mol):
