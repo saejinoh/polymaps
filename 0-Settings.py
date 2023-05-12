@@ -3,12 +3,17 @@ import pandas as pd
 import os, time
 from rdkit import Chem
 from rdkit.Chem import Descriptors
+import myformat
 
 homedir = os.path.dirname(__file__)
 
 st.set_page_config(layout="wide")
 st.session_state["settings_initialized"] = True
 #st.secrets["gcp_service_account"]
+
+
+myformat.set_font(widget=16)
+
 
 # database connection
 import gspread_pdlite as gspdl
@@ -104,9 +109,6 @@ if "max_MW" not in st.session_state:
 if "max_numftn" not in st.session_state:
     st.session_state["max_numftn"] = int(data_rxn.num_ftn.max())
 
-if "data_index" not in st.session_state:
-    st.session_state["data_index"] = (0,"(0,)")
-
 if "eval_details" not in st.session_state:
     #store mol-level under rxn_name = "general"
     st.session_state["eval_details"] = pd.DataFrame(columns=["molid","molidx","rxn_name","smiles","userinfo","timestamp","rating"])
@@ -169,11 +171,19 @@ slider_MW = persist_widget(st.slider, "MW range",
 
 # Simplicity/Complexity
 # (# of polymerizations identified, # functional groups, # subsitutents)
-slider_num_ftn = persist_widget(st.slider,"number of potentially polymerizable functional groups",
+slider_num_ftn = persist_widget(st.slider,"number of selected (above) potentially polymerizable functional groups. If none selected, defaults to any identified functinoal group.",
+                            min_value = 1, max_value = st.session_state.max_numftn,
+                            on_change = lambda: set_update_data_flag(True),
+                            key="slider_num_ftn_specific",
+                            val0 = (1,3) )
+
+slider_num_ftn = persist_widget(st.slider,"number of (any) potentially polymerizable functional groups",
                             min_value = 1, max_value = st.session_state.max_numftn,
                             on_change = lambda: set_update_data_flag(True),
                             key="slider_num_ftn",
                             val0 = (1,4) )
+
+
 
 # Bulkiness
 

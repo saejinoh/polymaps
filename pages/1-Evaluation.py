@@ -5,18 +5,12 @@ import os
 import ast
 import copy
 homedir = os.path.dirname(__file__)
+import myformat
 
 st.set_page_config(layout="wide")
-st.markdown(
-    """
-    <style>
-    [data-testid="stSidebar"][aria-expanded="true"]{
-        max-width: 650px;
-        min-width: 550px;
-    }
-    """,
-    unsafe_allow_html=True,
-)   
+
+myformat.set_sidebar(max_width=650, min_width=550)
+myformat.set_font()
 
 # database connection
 import gspread_pdlite as gspdl
@@ -28,7 +22,6 @@ sheet = load_sheet()
 
 # For read-only, use google sheets with export:
 # https://stackoverflow.com/questions/36096194/where-can-i-host-a-csv-so-i-can-directly-read-it-into-a-neo4j-database
-
 
 # Analysis imports
 import random
@@ -396,7 +389,9 @@ if "settings_initialized" not in st.session_state:
     st.markdown("# Upon browser refresh, please revisit Settings page first.")
 
 
-if "prev_data" not in st.session_state or "data_index" not in st.session_state: #first time through
+if "prev_data" not in st.session_state \
+    or "data_index" not in st.session_state \
+    or "data_index_description" not in st.session_state: #first time through
     if "rxn_selection" in st.session_state:
         multi_filtered = filter_rxn(multi,data_rxn,st.session_state.rxn_selection)
     else:

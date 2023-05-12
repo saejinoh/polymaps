@@ -4,9 +4,13 @@ import time
 import os
 import ast
 import copy
+import myformat
+
 homedir = os.path.dirname(__file__)
 
 st.set_page_config(layout="wide")
+myformat.set_font()
+
 
 # general settings
 rating_scale = ("skip","1: bad","2","3: interesting","4","5: good")

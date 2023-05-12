@@ -3,6 +3,8 @@ from rdkit import Chem
 from rdkit.Chem import rdChemReactions
 from rdkit.Chem import Draw
 import numpy as np
+import myformat
+myformat.set_font()
 
 st.markdown("# Results")
 
