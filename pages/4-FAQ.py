@@ -3,21 +3,23 @@ import streamlit as st
 st.markdown("# FAQ and Clarifications")
 st.markdown("""
 ##### 1. Could you further clarify how to rate the molecules?
-For every monomer and highlighted functional group, you are given the opportunity to:
+If you do choose to rate the monomers, for every monomer and highlighted functional group, you are given the opportunity to:
 1. Rate the functional group specifically for the identified polymerization type. I.e., fairly local considerations of the monomer.
 2. Rate the monomer overall
+
+You can always `skip` or mark a given (functional group, reaction) pairing as `incorrect`.
 
 The idea is that a functional group might be pretty decent in isolation (in terms of sterics and bulkiness), but the monomer overall might be bad (e.g. too many functional groups, or too bulky). We want to capture these two levels of information.
 
 Additionally, you are also given the opportunity to define other polymerization reactions that a given functional group might be good for, or leave general comments.
 
 
-Roughly think of the rating scale as follows:
-1. Don't bother trying to polymerize it
-2. This monomer would need *a lot* of work to polymerize
-3. This monomer would need some work to polymerize
-4. This monomer needs some work to polymerize, but is interesting enough to pursue
-5. This monomer probably works
+Roughly think of the rating scale as follows:  
+`1`. Don't bother trying to polymerize it  
+`2`. This monomer would need *a lot* of work to polymerize  
+`3`. This monomer would need some work to polymerize  
+`4`. This monomer needs some work to polymerize, and is interesting   enough to pursue  
+`5`. This monomer probably works
 
 ##### 2. How are the ring-opening polymerizations defined?
 The ring-opening polymerization motifs were taken from the [polymer database](https://polymerdatabase.com/polymer%20chemistry/ROMP_table.html).  
