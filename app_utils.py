@@ -57,15 +57,16 @@ import os
 # ===== Constants
 homedir = os.path.dirname(__file__)
 
-rxn_name_alias = {"simple":"alkene-linear"}
-rxn_name_alias_reverse = {"alkene-linear":"simple"}
+rxn_name_alias = {"simple":"acyclic alkene","rop-olefin":"ROMP"}
+rxn_name_alias_reverse = {"acyclic alkene":"simple","ROMP":"rop-olefin"}
 
 rating_scale = ("skip","1: bad","2","3: interesting","4","5: good")
 rating_scale = ("skip (don't answer)","0: N/A","1: impossible","2: bad potential","3: workable potential","4: promising potential","5: probably works")
-rating_scale = ("skip (don't answer)","incorrect","1","2","3","4","5")
+rating_scale = ("skip (don't answer)","incorrectly ID'd","1","2","3","4","5")
 rating_scale_index = {entry:ix for ix,entry in enumerate(rating_scale)}
 
 remove_step = False
+remove_rxns = ["rop-thioether","rop-oxazoline","rop-phosphonite","rop-siloxane"]
 read_local  = False
 
 # ===== System state
@@ -205,8 +206,11 @@ def filter_rxn(data, data_rxn, rxn_name = None):
     # filter by reaction name. TODO: step reactions needs adjustment
     if rxn_name is None or rxn_name == "choose for me!":
         # TMP, remove step reactions
+        subdata = data
+        if len(remove_rxns) > 0:
+            sub_data = subdata.iloc[ ~subdata.index.get_level_values("rxn_name").isin(remove_rxns) ]
         if remove_step:
-            sub_data = data.iloc[ ~data.index.get_level_values("rxn_name").isin(step_rxn_names) ]
+            sub_data = subdata.iloc[ ~subdata.index.get_level_values("rxn_name").isin(step_rxn_names) ]
         sub_data = data
         inds = sub_data.index.get_level_values("molid").unique().values
     else:
@@ -261,21 +265,22 @@ def update_filters():
 
         if tmp_multi_filtered.size == 0:
             st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to previous data set.")
-            if st.session_state["prev_data"].size == 0:
-                multi_filtered = multi_filtered0
-            else:
-                multi_filtered = st.session_state["prev_data"]
+            #if st.session_state["prev_data"].size == 0:
+            #    multi_filtered = multi_filtered0
+            #else:
+            #    multi_filtered = st.session_state["prev_data"]
+            multi_filtered = tmp_multi_filtered
         else:
             multi_filtered = tmp_multi_filtered
             if multi_filtered.size == 0:
                 st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to default data set.")
-                multi_filtered = filter_rxn(multi,data_rxn,None)
+                #multi_filtered = filter_rxn(multi,data_rxn,None)
         st.session_state["prev_data"] = multi_filtered
     else:
         multi_filtered = st.session_state["prev_data"]
         if multi_filtered.size == 0:
             st.write("##### ERROR: Filter too strict, returning 0 molecules. Returning to default data set.")
-            multi_filtered = multi_filtered0
+            #multi_filtered = multi_filtered0
     st.session_state["b_update_data"] = False
 
 
@@ -359,10 +364,11 @@ def initialize():
         rxn_types = data_rxn.columns.values
         # TMP: eliminate step reactions
         if remove_step:
-            rxn_types = [x for x in rxn_types if not x.startswith("step") and x != "smiles"]
-            rxn_types = rxn_types[:-2]
-        else:
-            rxn_types = rxn_types[:-3] #last two elements should be MW and rxn and smiles
+            rxn_types = [x for x in rxn_types if not x.startswith("step")]
+            #rxn_types = rxn_types[:-2]
+        if len(remove_rxns) > 0:
+            rxn_types = [x for x in rxn_types if x not in remove_rxns]
+        rxn_types = rxn_types[:-3] #last two elements should be MW and rxn and smiles
         names_to_alias = []
         for ix,x in enumerate(rxn_types):
             if x in rxn_name_alias: #e.g. simple -> alkene-linear
