@@ -29,30 +29,34 @@ st.markdown("""
 
 # ===== ===== BEGIN LAYOUT ===== =====
 st.markdown("# Welcome to MAPS!")
-intro_text = """##### The goal of MAPS (see [slides](https://docs.google.com/presentation/d/1wbf9w7fOz857bkP1-JDzYartVtSpfVswCPmVemt8rW4/edit?usp=sharing)) is to prospectively find natural products that might be polymerized into interesting new materials. 
-##### However, to date there is ***no*** dataset that documents polymerization reactions, rendering it difficult to do reliable computational screens of the large natural product space. 
-##### This project will 1) crowd source the first chemical dataset with an explicit focus on polymerization feasibility, and 2) can be used by scientists to conduct initial explorations of natural products, with explicit focus on polymerization.
-##### The molecules here are pulled from the [natural product database](https://www.npatlas.org/). On this page there are some settings to filter that data set by polymerization functional motif, MW, etc.  You can submit your feedback on the evaluation pages.
+intro_text = """##### The goal of MAPS (see [slides](https://docs.google.com/presentation/d/1wbf9w7fOz857bkP1-JDzYartVtSpfVswCPmVemt8rW4/edit?usp=sharing)) is to crowd source the ***first*** chemical dataset with an explicit focus on polymerization feasibility. 
+##### The molecules here are pulled from the [natural product database](https://www.npatlas.org/). 
 """
+###### to prospectively find natural products that might be polymerized into interesting new materials. 
+##### This project will
+###### , and 2) can be used by scientists to conduct initial explorations of natural products, with explicit focus on polymerization.
+###### However, to date there is ***no*** dataset that documents polymerization reactions, rendering it difficult to do reliable computational screens of the large natural product space. 
+###### On this page there are some settings to filter that data set by polymerization functional motif, MW, etc.  You can submit your feedback on the evaluation pages.
 #st.markdown('<p class="big-font">'+intro_text+'</p>',unsafe_allow_html=True)
 st.markdown(intro_text)
 
 cols = st.columns(2)
 with cols[0]:
-    expander_label = "Details -- what do I do with this webapp?"
-    with st.expander(expander_label, expanded = False):
-        st.markdown("- On this page, you can choose some basic filters for the molecules to view, as well as leave general comments about the process, monomers, etc.")
-        st.markdown("- Ratings can be given for for the polymerization potential of both specific functional groups as well as the monomer overall.")
-        st.markdown("- The scale is `1 (impossible)` - `3 (potentially workable)` - `5 (probably works)`. There is also an option to skip answering, or mark an identified (functional group, reaction) pairing as N/A.")
-    st_utils.change_widget_fontsize(expander_label,"18px")
+    #expander_label = "Details -- what do I do with this webapp?"
+    #with st.expander(expander_label, expanded = False):
+        st.markdown("- On this page, you can choose some basic filters for the molecules to view, as well as leave general comments about the process, etc.")
+        st.markdown("- Ratings can be given for the polymerization potential of both specific functional groups as well as the monomer overall.")
+        st.markdown("- You can always `skip` answering, or mark an identified pairing of (functional group, reaction) as `incorrectly ID'd`.")
+        st.markdown("- Scale: `1 (impossible)` - `3 (potentially works)` - `5 (definitely works)`.")
+    #st_utils.change_widget_fontsize(expander_label,"18px")
 with cols[1]:
-    expander_label = "What are all the pages in the side bar?"
-    with st.expander(expander_label, expanded = False):
+    #expander_label = "What are all the pages in the side bar?"
+    #with st.expander(expander_label, expanded = False):
         st.markdown("- On the `Batch Evaluation` page, you can rate multiple functional groups and molecules at a time.")
         st.markdown("- On the `Single Molecule Viewer` page, you can view individual molecules one at a time (e.g. at random or you can input a molecule ID).")
         st.markdown("- On the `Results` page, you can view your top-rated molecules, and optionally download a `.csv` of all molecules that you've rated.")
         st.markdown("- On the `FAQ` page you'll find additional information.")
-    st_utils.change_widget_fontsize(expander_label,"18px")
+    #st_utils.change_widget_fontsize(expander_label,"18px")
 #st.markdown("- On the `Evaluation` tab (in the sidebar), you will be shown monomers, with one highlighted functional group at a time, and the opportunity to rate the suitability of the functional groups for polymerization. \n  - *The first load may take a few minutes!* \n")
 
 
@@ -95,13 +99,13 @@ with cols[1]:
 
     # Simplicity/Complexity
     # (# of polymerizations identified, # functional groups, # subsitutents)
-    slider_num_ftn_specific = st_utils.persist_widget(st.slider,"Number of selected potentially polymerizable functional groups. If no polymerization type selected, same as next filter.",
+    slider_num_ftn_specific = st_utils.persist_widget(st.slider,f"Number of `{st.session_state.rxn_selection}` polymerizable functional groups. (If no polymerization type selected, same as next filter.)",
                                 min_value = 1, max_value = st.session_state.max_numftn,
                                 on_change = lambda: set_update_data_flag(True),
                                 key="slider_num_ftn_specific",
                                 val0 = (1,5) )
 
-    slider_num_ftn = st_utils.persist_widget(st.slider,"Number of (any) potentially polymerizable functional groups",
+    slider_num_ftn = st_utils.persist_widget(st.slider,"Total number of (any) potentially polymerizable functional groups",
                                 min_value = 1, max_value = st.session_state.max_numftn,
                                 on_change = lambda: set_update_data_flag(True),
                                 key="slider_num_ftn",
@@ -154,41 +158,44 @@ st.markdown("**Distribution of potential polymerization motifs:**")
 # Visualize distribution
 counts = []
 multi_index, data_rxn = st.session_state["prev_data"], st.session_state["data_rxn"]
-molids = multi_index.index.unique("molid")
-filtered_data_rxn = data_rxn.loc[molids]
-for rxn_name in st.session_state["rxn_types"]:
-    valid_molids = app_utils.get_valid_reactions( filtered_data_rxn, (1,50), rxn_name )
-    counts.append(valid_molids.size)
+if multi_index.size == 0:
+     st.markdown("##### No molecules left to analyze. Adjust filters.")
+else:
+    molids = multi_index.index.unique("molid")
+    filtered_data_rxn = data_rxn.loc[molids]
+    for rxn_name in st.session_state["rxn_types"]:
+        valid_molids = app_utils.get_valid_reactions( filtered_data_rxn, (1,50), rxn_name )
+        counts.append(valid_molids.size)
 
-import numpy as np
-ks = np.array( st.session_state["rxn_types"] )
-vs = np.array(counts)
-sort_index = np.argsort( np.array(counts) )
-import matplotlib.pyplot as plt
-cols = st.columns(2)
+    import numpy as np
+    ks = np.array( st.session_state["rxn_types"] )
+    vs = np.array(counts)
+    sort_index = np.argsort( np.array(counts) )
+    import matplotlib.pyplot as plt
+    cols = st.columns(2)
 
-with cols[0]:
-    # Top 10
-    fig, ax = plt.subplots(figsize=(2, 2))
-    y_pos = np.arange(len(counts))
-    rs = st.session_state["rxn_types"]
-    ktmp,vtmp = ks[sort_index[-1:-11:-1]], vs[sort_index[-1:-11:-1]] 
-    ytmp = np.arange(len(ktmp))
-    ax.barh(ytmp,vtmp)
-    ax.set_yticks(ytmp, ktmp,fontsize=6)
-    ax.invert_yaxis()
-    ax.set_xlabel("count")
-    st.pyplot(fig)
+    with cols[0]:
+        # Top 10
+        fig, ax = plt.subplots(figsize=(2, 2))
+        y_pos = np.arange(len(counts))
+        rs = st.session_state["rxn_types"]
+        ktmp,vtmp = ks[sort_index[-1:-11:-1]], vs[sort_index[-1:-11:-1]] 
+        ytmp = np.arange(len(ktmp))
+        ax.barh(ytmp,vtmp)
+        ax.set_yticks(ytmp, ktmp,fontsize=6)
+        ax.invert_yaxis()
+        ax.set_xlabel("count")
+        st.pyplot(fig)
 
-with cols[1]:
-    # Bottom
-    fig, ax = plt.subplots(figsize=(2, 2))
-    y_pos = np.arange(len(counts))
-    rs = st.session_state["rxn_types"]
-    ktmp,vtmp = ks[sort_index[-11::-1]], vs[sort_index[-11::-1]] 
-    ytmp = np.arange(len(ktmp))
-    ax.barh(ytmp,vtmp)
-    ax.set_yticks(ytmp, ktmp,fontsize=6)
-    ax.invert_yaxis()
-    ax.set_xlabel("count")
-    st.pyplot(fig)
+    with cols[1]:
+        # Bottom
+        fig, ax = plt.subplots(figsize=(2, 2))
+        y_pos = np.arange(len(counts))
+        rs = st.session_state["rxn_types"]
+        ktmp,vtmp = ks[sort_index[-11::-1]], vs[sort_index[-11::-1]] 
+        ytmp = np.arange(len(ktmp))
+        ax.barh(ytmp,vtmp)
+        ax.set_yticks(ytmp, ktmp,fontsize=6)
+        ax.invert_yaxis()
+        ax.set_xlabel("count")
+        st.pyplot(fig)
