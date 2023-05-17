@@ -62,6 +62,7 @@ rxn_name_alias_reverse = {"alkene-linear":"simple"}
 
 rating_scale = ("skip","1: bad","2","3: interesting","4","5: good")
 rating_scale = ("skip (don't answer)","0: N/A","1: impossible","2: bad potential","3: workable potential","4: promising potential","5: probably works")
+rating_scale = ("skip (don't answer)","incorrect","1","2","3","4","5")
 rating_scale_index = {entry:ix for ix,entry in enumerate(rating_scale)}
 
 remove_step = False

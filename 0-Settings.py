@@ -49,7 +49,7 @@ with cols[1]:
     expander_label = "What are all the pages in the side bar?"
     with st.expander(expander_label, expanded = False):
         st.markdown("- On the `Batch Evaluation` page, you can rate multiple functional groups and molecules at a time.")
-        st.markdown("- On the `Evaluation` page, you will rate one molecule at a time, and have the opportunity to give more thorough assessments of the molecule.")
+        st.markdown("- On the `Single Molecule Viewer` page, you can view individual molecules one at a time (e.g. at random or you can input a molecule ID).")
         st.markdown("- On the `Results` page, you can view your top-rated molecules, and optionally download a `.csv` of all molecules that you've rated.")
         st.markdown("- On the `FAQ` page you'll find additional information.")
     st_utils.change_widget_fontsize(expander_label,"18px")

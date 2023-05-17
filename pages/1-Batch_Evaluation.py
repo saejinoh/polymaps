@@ -284,6 +284,15 @@ with st.sidebar:
     st.button("Save & Next page",on_click = page_forward)
     st.button("Save & Previous page",on_click = page_backward)
     st.button("Save",on_click = save_only)
+    with st.expander("""Rating Guide"""):
+        st.markdown(""" 
+- `1`: very unlikely to work
+- `2`: unlikely to work
+- `3`: workable with a lot of work
+- `4`: promising
+- `5`: probably works
+""")
+    st_utils.change_widget_fontsize("""Rating Guide""","18px")
 
 # --- Main Text
 # Entry Area
@@ -344,15 +353,18 @@ for ia in range(n_rows):
 
 
                         # Actually create the entries
-                        entries.append( st.selectbox(f"**quality for `{rxn_names[index_abs]}` polymerization**",
+                        entries.append( st.radio(f"**quality for `{rxn_names[index_abs]}` polymerization**",
                                                 rating_scale,
-                                                key=f"entry_{index_abs}",
+                                                key=f"entry_{index_abs}",horizontal=True
                                                 ))
                         entries_general.append( st.selectbox("**overall monomer quality**",
                                                 rating_scale,
                                                 key=f"entry_general_{index_abs}",
                                                 ))
-                        
+                        st.multiselect("comments (multiple selections ok)",["too bulky","too electron poor","too electron rich",
+                                       "not nucleophilic enough","not electrophilic enough",
+                                       "aromatic too stable","other"],key=f"select_comments_{index_abs}")
+
                         #if f"container_state_{index_abs}" not in st.session_state:
                         #    st.session_state[f"container_state_{index_abs}"] = False
                         #if st.session_state[f"entry_other_reset"]:
