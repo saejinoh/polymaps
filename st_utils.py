@@ -87,6 +87,9 @@ div[class*="stTextArea"] > label > div[data-testid="stMarkdownContainer"] > p {{
 div[class*="row-widget stSelectbox"] > label > div[data-testid="stMarkdownContainer"] > p {{
     font-size: {widget}px;
 }}
+div[class*="row-widget stMultiSelect"] > label > div[data-testid="stMarkdownContainer"] > p {{
+    font-size: {widget}px;
+}}
 div[class*="streamlit-expanderHeader*"] > div[data-testid="stMarkdownContainer"] > p {{
     font-size: {widget}px;
 }}
