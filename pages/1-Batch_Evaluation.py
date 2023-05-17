@@ -63,6 +63,9 @@ if st.session_state["b_update_data_batch"]:
 
 # retrieve multi_filtered and prune (keep only one entry per unique multi index)
 multi_filtered = st.session_state["prev_data"]
+if multi_filtered.size == 0:
+     st.markdown("##### No molecules left to analyze. Adjust filters on settings page.")
+     st.stop()
 multi_filtered = multi_filtered[ ~multi_filtered.index.duplicated(keep='first') ]
 
 # update proxy index
@@ -286,11 +289,11 @@ with st.sidebar:
     st.button("Save",on_click = save_only)
     with st.expander("""Rating Guide"""):
         st.markdown(""" 
-- `1`: very unlikely to work
-- `2`: unlikely to work
-- `3`: workable with a lot of work
-- `4`: promising
-- `5`: probably works
+- skip (don't answer)
+- incorrectly ID'd
+- `1`: impossible
+- `3`: potentially works
+- `5`: definitely works
 """)
     st_utils.change_widget_fontsize("""Rating Guide""","18px")
 
@@ -353,17 +356,18 @@ for ia in range(n_rows):
 
 
                         # Actually create the entries
-                        entries.append( st.radio(f"**quality for `{rxn_names[index_abs]}` polymerization**",
+                        entries.append( st.radio(f"**functional group (highlighted) quality for polymerization: `{rxn_names[index_abs]}`**",
                                                 rating_scale,
                                                 key=f"entry_{index_abs}",horizontal=True
                                                 ))
-                        entries_general.append( st.selectbox("**overall monomer quality**",
+                        entries_general.append( st.radio("**overall monomer quality for polymerization**",
                                                 rating_scale,
-                                                key=f"entry_general_{index_abs}",
+                                                key=f"entry_general_{index_abs}",horizontal=True
                                                 ))
-                        st.multiselect("comments (multiple selections ok)",["too bulky","too electron poor","too electron rich",
-                                       "not nucleophilic enough","not electrophilic enough",
-                                       "aromatic too stable","other"],key=f"select_comments_{index_abs}")
+                        st.multiselect("**comments** (multiple selections ok)",["radical","anionic","cationic","metathesis",
+                                        "too bulky","too electron poor","too electron rich",
+                                        "not nucleophilic enough","not electrophilic enough",
+                                        "aromatic too stable","other"],key=f"select_comments_{index_abs}")
 
                         #if f"container_state_{index_abs}" not in st.session_state:
                         #    st.session_state[f"container_state_{index_abs}"] = False
@@ -382,16 +386,17 @@ for ia in range(n_rows):
                                 expanded=False)
 
                         with container:
-                            rxn_types_with_other = ["other (write in comments)"]
-                            rxn_types_with_other.extend(st.session_state.rxn_types)
-                            st.selectbox("**choose polymerization motif**",
-                                         rxn_types_with_other,key=f"entry_other_name_{index_abs}")
-                            st.selectbox(f"**quality for polymerization**",
-                                                rating_scale,
-                                                key=f"entry_other_{index_abs}",
-                                                )
                             st.text_area("other comments: (use atom indices if needed)",
                                          "",key=f"entry_comments_{index_abs}")
+                            rxn_types_with_other = ["other (write in comments)"]
+                            rxn_types_with_other.extend(st.session_state.rxn_types)
+                            st.multiselect("**suggest another polymerization motif**",
+                                         rxn_types_with_other,key=f"entry_other_name_{index_abs}")
+                            st.radio(f"**quality for selected (above) polymerization(s)**",
+                                                rating_scale,
+                                                key=f"entry_other_{index_abs}",horizontal=True
+                                                )
+                            
                     else:
                         st.write(f"identified for: `{rxn_names[index_abs]}`")
                 #data_slice.iloc[ia*3 + ic]
