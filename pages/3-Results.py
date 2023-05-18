@@ -53,7 +53,7 @@ else:
     # Draw
     svg = Chem.Draw.MolsToGridImage(mols,molsPerRow=3,subImgSize=(250,250),legends=legends, useSVG=True)
 
-    st.markdown(f"### `{len(mols)}`/`{len(all_molids)}` saved molecules were rated as `interesting` or `good`:")
+    st.markdown(f"### `{len(mols)}`/`{len(all_molids)}` saved molecules were rated as `> 3`:")
     if len(mols) > 0:
         st.image(svg)
 
