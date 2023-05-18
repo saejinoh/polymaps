@@ -22,6 +22,7 @@ st_utils.set_sidebar(max_width=650, min_width=550)
 if "settings_initialized" not in st.session_state:
     st.markdown("# Upon browser refresh, please revisit Settings page first.")
     st.stop()
+rating_on = False
 
 # Database connection
 import gspread_pdlite as gspdl
@@ -67,7 +68,7 @@ def generate_index(multi_filtered,trial_molid=None):
         rxn_selection (_type_): _description_
 
     Returns:
-        tuple: (index tuple), filtered_data
+        tuple: (index tuple)
 
     Notes:
         To simplify interface, makes use of st.session_state:
@@ -349,7 +350,10 @@ def log_evaluation():
     comment_dict = copy.copy(root_dict)
     comment_dict["comments_ftn"] = st.session_state["comments_ftn"]
     comment_dict["comments_mol"] = st.session_state["comments_mol"]
-    comment_dict["rating_mol"] = st.session_state["rating_mol"]
+    if rating_on:
+        comment_dict["rating_mol"] = st.session_state["rating_mol"]
+    else:
+        comment_dict["rating_mol"] = ""
     if "skip" not in comment_dict["rating_mol"] \
         and comment_dict["comments_ftn"].strip() != "" \
         and comment_dict["comments_ftn"].strip() != "":
@@ -359,21 +363,22 @@ def log_evaluation():
                                                     ignore_index=True)
 
     # rxn-specific data
-    rxn_ratings = []
-    for rxn_name_entry_in_session_state in st.session_state["rxns_for_this_ftn_group"]:
-        rxn_rating_dict = copy.copy(root_dict)
-        rxn_name = rxn_name_entry_in_session_state.removeprefix("rating_")
-        if rxn_name == "other":
-            rxn_name = st.session_state["rating_other_name"]
-        rxn_rating_dict["rxn_name"] = rxn_name
-        rxn_rating_dict["rating"] = st.session_state[rxn_name_entry_in_session_state]
+    if rating_on:
+        rxn_ratings = []
+        for rxn_name_entry_in_session_state in st.session_state["rxns_for_this_ftn_group"]:
+            rxn_rating_dict = copy.copy(root_dict)
+            rxn_name = rxn_name_entry_in_session_state.removeprefix("rating_")
+            if rxn_name == "other":
+                rxn_name = st.session_state["rating_other_name"]
+            rxn_rating_dict["rxn_name"] = rxn_name
+            rxn_rating_dict["rating"] = st.session_state[rxn_name_entry_in_session_state]
 
-        if "skip" not in rxn_rating_dict["rating"]:
-            rxn_ratings.append(rxn_rating_dict)
-    rxn_ratings_dict_df = pd.DataFrame(rxn_ratings)
-    st.session_state["eval_details"] = pd.concat([ st.session_state["eval_details"], 
-                                                rxn_ratings_dict_df ],
-                                                ignore_index=True)
+            if "skip" not in rxn_rating_dict["rating"]:
+                rxn_ratings.append(rxn_rating_dict)
+        rxn_ratings_dict_df = pd.DataFrame(rxn_ratings)
+        st.session_state["eval_details"] = pd.concat([ st.session_state["eval_details"], 
+                                                    rxn_ratings_dict_df ],
+                                                    ignore_index=True)
 
     # saving
     st.session_state["eval_mol"].to_csv("eval_mol.csv",index=False)
@@ -385,7 +390,7 @@ def log_evaluation():
         ws = sheet.worksheet(st.secrets.data.name_mol)
         gspdl.worksheet_append( ws, comment_dict_df )
 
-    if rxn_ratings_dict_df.size > 0:
+    if rating_on and rxn_ratings_dict_df.size > 0:
         ws = sheet.worksheet(st.secrets.data.name_details)
         gspdl.worksheet_append( ws, rxn_ratings_dict_df )
     
@@ -436,7 +441,8 @@ with st.sidebar:
         with st.form("evaluation",clear_on_submit = True):
             st.markdown("**Functional group quality for the following polymerizations...**")
             #st.markdown("(scoring scale: `0` to skip, `1`: bad, `3`: interesting, `5`: good)")
-            st.markdown("(scoring scale: `1`: unworkable to `5`: almost definitely works)")
+            if rating_on:
+                st.markdown("(scoring scale: `1`: unworkable to `5`: almost definitely works)")
             radio_quality_list = []
 
             multi_filtered = st.session_state["prev_data"] 
@@ -452,44 +458,57 @@ with st.sidebar:
             rxn_types = match_specific_data.index.unique("rxn_name")
 
             st.session_state["rxns_for_this_ftn_group"] = []
-            for rxn_name in rxn_types:  
-                if rxn_name in app_utils.rxn_name_alias:
-                    rxn_name = app_utils.rxn_name_alias[rxn_name]
-                keyname = "rating_" + rxn_name
-                st.session_state["rxns_for_this_ftn_group"].append(keyname)
-                #radio_quality_list.append( st.radio(rxn_name + " polymerization",
+            if rating_on:
+                for rxn_name in rxn_types:  
+                    if rxn_name in app_utils.rxn_name_alias:
+                        rxn_name = app_utils.rxn_name_alias[rxn_name]
+                    keyname = "rating_" + rxn_name
+                    st.session_state["rxns_for_this_ftn_group"].append(keyname)
+                    #radio_quality_list.append( st.radio(rxn_name + " polymerization",
+                    #                                    ("skip","bad","interesting","good"),
+                    #                                    horizontal=True,
+                    #                                    key = keyname)
+                    #)
+                    radio_quality_list.append( st.selectbox("**" + rxn_name + " polymerization**",
+                                                                app_utils.rating_scale,
+                                                                key=keyname))
+
+                    #radio_quality = st.radio("**Ftnl group quality**",("skip","bad","interesting","good"),horizontal=True)
+                #radio_quality_list.append( st.radio("other polymerization",
                 #                                    ("skip","bad","interesting","good"),
                 #                                    horizontal=True,
-                #                                    key = keyname)
+                #                                    key="rating_other") 
                 #)
-                radio_quality_list.append( st.selectbox("**" + rxn_name + " polymerization**",
+                with st.expander("manually enter other polymerization motif for this functional group",expanded=False):
+                    rxn_types_with_other = ["other (write in comments)"]
+                    rxn_types_with_other.extend(st.session_state.rxn_types)
+                    other_polymerization_motif = st.selectbox("**choose polymerization motif**",rxn_types_with_other,key="rating_other_name")
+                    radio_quality_list.append( st.selectbox("**rating**",
                                                             app_utils.rating_scale,
-                                                            key=keyname))
+                                                            key="rating_other"))
+                    st.session_state["rxns_for_this_ftn_group"].append("rating_other")
 
-                #radio_quality = st.radio("**Ftnl group quality**",("skip","bad","interesting","good"),horizontal=True)
-            #radio_quality_list.append( st.radio("other polymerization",
-            #                                    ("skip","bad","interesting","good"),
-            #                                    horizontal=True,
-            #                                    key="rating_other") 
-            #)
-            with st.expander("manually enter other polymerization motif for this functional group",expanded=False):
-                rxn_types_with_other = ["other (write in comments)"]
-                rxn_types_with_other.extend(st.session_state.rxn_types)
-                other_polymerization_motif = st.selectbox("**choose polymerization motif**",rxn_types_with_other,key="rating_other_name")
-                radio_quality_list.append( st.selectbox("**rating**",
-                                                        app_utils.rating_scale,
-                                                        key="rating_other"))
-                st.session_state["rxns_for_this_ftn_group"].append("rating_other")
+                #radio_quality = st.radio("**Overall monomer quality**",("no comment","bad","interesting","good"),horizontal=True,key="rating_mol")
+                radio_quality = st.selectbox("**Is the molecule interesting overall?**",
+                                                            app_utils.rating_scale,
+                                                            key="rating_mol")
+            
 
-                text_form = st.text_area("comments on the highlighted functional group: (use atom indices if needed)","",key="comments_ftn")
+            tmp_df = st.session_state.eval_mol
+            current_molid, current_molidx = st.session_state["data_index"]
+            tmp_slice = tmp_df[ (tmp_df.molid == current_molid) 
+                                & (tmp_df.molidx == current_molidx) ]
+            if tmp_slice.size > 0:
+                comment_0 = tmp_slice.iloc[-1].comments_mol
+            else:
+                comment_0 = ""
 
-            #radio_quality = st.radio("**Overall monomer quality**",("no comment","bad","interesting","good"),horizontal=True,key="rating_mol")
-            radio_quality = st.selectbox("**Is the molecule interesting overall?**",
-                                                        app_utils.rating_scale,
-                                                        key="rating_mol")
-            text_form = st.text_area("comments on the monomer: (use atom indices if needed)","",key="comments_mol")
+            text_form = st.text_area("comments on the highlighted functional group: (use atom indices if needed)",
+                                     "",key="comments_ftn")
+            text_form = st.text_area("comments on the monomer, overall: (use atom indices if needed)",
+                                     "",key="comments_mol")
 
-            submitted = st.form_submit_button("submit",on_click=submit_update)
+            submitted = st.form_submit_button("submit and next",on_click=submit_update)
     #end if userinfo clause
 
 # ===== Actual main content

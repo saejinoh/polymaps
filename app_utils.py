@@ -33,6 +33,7 @@ import os
 # < state trackers >
 # - settings_initialized
 # - b_update_data
+# - data_index              (molid, matchidx)
 
 # - b_update_data_batch         for batch evaluation
 # - entry_other_reset       
