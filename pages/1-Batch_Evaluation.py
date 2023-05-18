@@ -354,23 +354,24 @@ for ia in range(n_rows):
                             st.session_state[f"entry_general_{index_abs}_load"] = False #False after first reload
                         #otherwise, just keep result
 
-
                         # Actually create the entries
                         entries.append( st.radio(f"**functional group (highlighted) quality for polymerization: `{rxn_names[index_abs]}`**",
                                                 rating_scale,
                                                 key=f"entry_{index_abs}",horizontal=True
                                                 ))
-                        st.multiselect("**comments on ftn group** (all that apply)",["radical","anionic","cationic","metathesis",
-                                        "too bulky","too electron poor","too electron rich",
-                                        "not nucleophilic enough","not electrophilic enough",
-                                        "aromatic too stable","other"],key=f"select_comments_{index_abs}")
                         entries_general.append( st.radio("**overall monomer quality for polymerization**",
                                                 rating_scale,
                                                 key=f"entry_general_{index_abs}",horizontal=True
                                                 ))
-                        st.multiselect("**comments on monomer overall** (all that apply)",[
-                                        "too bulky","too many interfering functional groups","repeat unit will look very different",
-                                        "aromatic too stable","other"],key=f"select_comments_general_{index_abs}")
+                        st.multiselect("**comments** (select all that apply)",["radical","anionic","cationic","metathesis",
+                                        "repeat unit will look very different",
+                                        "too bulky (functional group)","too bulky (overall)","too electron poor","too electron rich",
+                                        "not nucleophilic enough","not electrophilic enough",
+                                        "aromatic too stable",
+                                        "too many interfering functional groups","other"],key=f"select_comments_{index_abs}")
+                        #st.multiselect("**comments on monomer overall** (all that apply)",[
+                        #                "too bulky","too many interfering functional groups","repeat unit will look very different",
+                        #                "aromatic too stable","other"],key=f"select_comments_general_{index_abs}")
 
                         #if f"container_state_{index_abs}" not in st.session_state:
                         #    st.session_state[f"container_state_{index_abs}"] = False
