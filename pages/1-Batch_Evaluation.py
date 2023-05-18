@@ -360,14 +360,17 @@ for ia in range(n_rows):
                                                 rating_scale,
                                                 key=f"entry_{index_abs}",horizontal=True
                                                 ))
+                        st.multiselect("**comments on ftn group** (multiple selections ok)",["radical","anionic","cationic","metathesis",
+                                        "too bulky","too electron poor","too electron rich",
+                                        "not nucleophilic enough","not electrophilic enough",
+                                        "aromatic too stable","other"],key=f"select_comments_{index_abs}")
                         entries_general.append( st.radio("**overall monomer quality for polymerization**",
                                                 rating_scale,
                                                 key=f"entry_general_{index_abs}",horizontal=True
                                                 ))
-                        st.multiselect("**comments** (multiple selections ok)",["radical","anionic","cationic","metathesis",
-                                        "too bulky","too electron poor","too electron rich",
-                                        "not nucleophilic enough","not electrophilic enough",
-                                        "aromatic too stable","other"],key=f"select_comments_{index_abs}")
+                        st.multiselect("**comments on monomer as a whole** (multiple selections ok)",[
+                                        "too bulky","too many interfering functional groups","repeat unit will look very different",
+                                        "aromatic too stable","other"],key=f"select_comments_general_{index_abs}")
 
                         #if f"container_state_{index_abs}" not in st.session_state:
                         #    st.session_state[f"container_state_{index_abs}"] = False
