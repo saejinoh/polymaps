@@ -1,5 +1,5 @@
 # Main imports
-import time, os, ast, copy
+import time, os, ast, copy, ast
 
 # Analysis imports
 import random
@@ -153,15 +153,32 @@ def log():
         root_dict["userinfo"] = st.session_state["userinfo"]
         root_dict["timestamp"] = timestamp
 
+        # should store reaction-specific comments in dictionary!
+        rxn_specific_comments = {}
+
         #general ratings
         # --> comments first
         comment_dict = copy.copy(root_dict)
-        if "skip" not in st.session_state[f"entry_other_{ii}"]:
-            comment_dict["comments_ftn"] = \
-                st.session_state[f"entry_other_name_{ii}"] \
-                + "; " + st.session_state[f"entry_other_{ii}"]
+        if len( st.session_state[f"select_comments_{ii}"] ) > 0:
+            rxn_specific_comments["notes"] = st.session_state[f"select_comments_{ii}"]
+        if "skip" not in st.session_state[f"entry_other_{ii}"]\
+            and len( st.session_state[f"entry_other_name_{ii}"] ) > 0:
+                rxn_specific_comments["rxn names"] = st.session_state[f"entry_other_name_{ii}"]
+                rxn_specific_comments["rxn rating"] = st.session_state[f"entry_other_{ii}"]
+        if len(rxn_specific_comments) > 0:
+            comment_dict["comments_ftn"] = str(rxn_specific_comments)
         else:
             comment_dict["comments_ftn"] = ""
+
+        #if "skip" not in st.session_state[f"entry_other_{ii}"]
+            #user_submitted_rxn_names = st.session_state[f"entry_other_name_{ii}"]
+            #if isinstance(user_submitted_rxn_names,list):
+            #    user_submitted_rxn_names = str(user_submitted_rxn_names)
+            #comment_dict["comments_ftn"] = \
+            #    user_submitted_rxn_names \
+            #    + ", " + st.session_state[f"entry_other_{ii}"]
+        #else:
+        #    comment_dict["comments_ftn"] = ""
         comment_dict["comments_mol"] = st.session_state[f"entry_comments_{ii}"].strip()
         # --> ratings
         comment_dict["rating_mol"] = st.session_state[f"entry_general_{ii}"]
@@ -240,6 +257,11 @@ def log():
     if rxn_ratings_df.size > 0:
         ws = sheet.worksheet(st.secrets.data.name_details)
         gspdl.worksheet_append( ws, rxn_ratings_df )
+
+    # state variable on refresh, reminder to reload data
+    for ii in range(data_slice.shape[0]):
+        st.session_state[f"entry_{ii}_load"] = True
+        st.session_state[f"entry_general_{ii}_load"] = True
 # end log
 
 valid_email = not ("userinfo" not in st.session_state \
@@ -300,7 +322,6 @@ with st.sidebar:
 # --- Main Text
 # Entry Area
 n_rows = int(mols_per_page/3)
-
 entries = []
 entries_general = []
 for ia in range(n_rows):
@@ -317,13 +338,15 @@ for ia in range(n_rows):
                         current_rxn = rxn_names[index_abs]
                         current_molidx = molidxs[index_abs]
 
-                        # DUE to streamlit behavior,
+                        # --- DUE to streamlit behavior,
                         # We need to manually figure out when to and not to load and persist 
                         # widget values. Here, we only refresh
                         if st.session_state[f"entry_other_reset"]:
-                            st.session_state[f"entry_other_name_{index_abs}"] = "other (write in comments)"
+                            st.session_state[f"entry_other_name_{index_abs}"] = [] #"other (write in comments)"
                             st.session_state[f"entry_other_{index_abs}"] = rating_scale[0]
                             st.session_state[f"entry_comments_{index_abs}"] = ""
+
+                            st.session_state[f"select_comments_{index_abs}"] = []
 
                         tmp_df = st.session_state.eval_details
                         tmp_slice = tmp_df[ (tmp_df.molid == current_molid)
@@ -331,6 +354,7 @@ for ia in range(n_rows):
                                             & (tmp_df.rxn_name == current_rxn)   ]
                         if f"entry_{index_abs}_load" not in st.session_state:
                             st.session_state[f"entry_{index_abs}_load"] = True
+
                         if st.session_state[f"entry_{index_abs}_load"]: 
                             if tmp_slice.size > 0:
                                 st.session_state[f"entry_{index_abs}"] = tmp_slice.iloc[-1].rating
@@ -342,19 +366,37 @@ for ia in range(n_rows):
                         tmp_df = st.session_state.eval_mol
                         tmp_slice = tmp_df[ (tmp_df.molid == current_molid) 
                                             & (tmp_df.molidx == current_molidx) ]
+                        
                         if f"entry_general_{index_abs}_load" not in st.session_state:
                             st.session_state[f"entry_general_{index_abs}_load"] = True
                         if st.session_state[f"entry_general_{index_abs}_load"]:
                             if tmp_slice.size > 0:
                                 #if previous result exists, and in reload mode
                                 st.session_state[f"entry_general_{index_abs}"] = tmp_slice.iloc[-1].rating_mol
+                                # and load all of the other general comments
+                                try:
+                                    rxn_specific_comments = ast.literal_eval( tmp_slice.iloc[-1].comments_ftn )
+                                    if "notes" in rxn_specific_comments:
+                                        st.session_state[f"select_comments_{index_abs}"] = rxn_specific_comments["notes"]
+                                    if "rxn names" in rxn_specific_comments:
+                                        st.session_state[f"entry_other_name_{index_abs}"] = rxn_specific_comments["rxn names"]
+                                    if "rxn rating" in rxn_specific_comments:
+                                        st.session_state[f"entry_other_{index_abs}"] = rxn_specific_comments["rxn rating"]
+                                    st.session_state[f"entry_comments_{index_abs}"] = tmp_slice.iloc[-1].comments_mol
+                                except: #unparseable comments stored, ignore
+                                    pass
                             else:
                                 #new molecule, go to default value
                                 st.session_state[f"entry_general_{index_abs}"] = rating_scale[0]
                             st.session_state[f"entry_general_{index_abs}_load"] = False #False after first reload
                         #otherwise, just keep result
 
-                        # Actually create the entries
+
+                        # now load the special comments
+
+
+
+                        # --- Actually create the entries
                         entries.append( st.radio(f"**functional group (highlighted) quality for polymerization: `{rxn_names[index_abs]}`**",
                                                 rating_scale,
                                                 key=f"entry_{index_abs}",horizontal=True
@@ -364,7 +406,7 @@ for ia in range(n_rows):
                                                 key=f"entry_general_{index_abs}",horizontal=True
                                                 ))
                         st.multiselect("**comments** (select all that apply)",["radical","anionic","cationic","metathesis",
-                                        "repeat unit will look very different",
+                                        "significant modification needed/repeat unit not obvious",
                                         "too bulky (functional group)","too bulky (overall)","too electron poor","too electron rich",
                                         "not nucleophilic enough","not electrophilic enough",
                                         "aromatic too stable",
@@ -396,7 +438,7 @@ for ia in range(n_rows):
                             rxn_types_with_other.extend(st.session_state.rxn_types)
                             st.multiselect("**suggest another polymerization motif**",
                                          rxn_types_with_other,key=f"entry_other_name_{index_abs}")
-                            st.radio(f"**quality for selected (above) polymerization(s)**",
+                            st.radio(f"**quality for selected polymerization(s)**",
                                                 rating_scale,
                                                 key=f"entry_other_{index_abs}",horizontal=True
                                                 )
