@@ -160,10 +160,10 @@ def log():
         # --> comments first
         comment_dict = copy.copy(root_dict)
         if len( st.session_state[f"select_comments_{ii}"] ) > 0:
-            rxn_specific_comments["notes"] = st.session_state[f"select_comments_{ii}"]
+            rxn_specific_comments["notes"] = str(st.session_state[f"select_comments_{ii}"])
         if "skip" not in st.session_state[f"entry_other_{ii}"]\
             and len( st.session_state[f"entry_other_name_{ii}"] ) > 0:
-                rxn_specific_comments["rxn names"] = st.session_state[f"entry_other_name_{ii}"]
+                rxn_specific_comments["rxn names"] = str(st.session_state[f"entry_other_name_{ii}"])
                 rxn_specific_comments["rxn rating"] = st.session_state[f"entry_other_{ii}"]
         if len(rxn_specific_comments) > 0:
             comment_dict["comments_ftn"] = str(rxn_specific_comments)
@@ -224,13 +224,13 @@ def log():
 
         #other ratings
         rxn_rating_dict = copy.copy(root_dict)
-        rxn_rating_dict["rxn_name"] = st.session_state[f"entry_other_name_{ii}"]
+        rxn_rating_dict["rxn_name"] = str(st.session_state[f"entry_other_name_{ii}"])
         rxn_rating_dict["rating"] = st.session_state[f"entry_other_{ii}"]
         if "skip" not in rxn_rating_dict["rating"]:
             tmp_df = st.session_state.eval_details
             tmp_slice = tmp_df[ (tmp_df.molid == molid)
                             & (tmp_df.molidx == molidx)
-                            & (tmp_df.rxn_name == rxn_name)   ]
+                            & (tmp_df.rxn_name == rxn_rating_dict["rxn_name"])   ]
             if tmp_slice.size > 0:
                 if rxn_rating_dict["rating"] != tmp_slice.iloc[-1].rating:
                     #only save if different from previous result
@@ -377,9 +377,9 @@ for ia in range(n_rows):
                                 try:
                                     rxn_specific_comments = ast.literal_eval( tmp_slice.iloc[-1].comments_ftn )
                                     if "notes" in rxn_specific_comments:
-                                        st.session_state[f"select_comments_{index_abs}"] = rxn_specific_comments["notes"]
+                                        st.session_state[f"select_comments_{index_abs}"] = ast.literal_eval(rxn_specific_comments["notes"])
                                     if "rxn names" in rxn_specific_comments:
-                                        st.session_state[f"entry_other_name_{index_abs}"] = rxn_specific_comments["rxn names"]
+                                        st.session_state[f"entry_other_name_{index_abs}"] = ast.literal_eval(rxn_specific_comments["rxn names"])
                                     if "rxn rating" in rxn_specific_comments:
                                         st.session_state[f"entry_other_{index_abs}"] = rxn_specific_comments["rxn rating"]
                                     st.session_state[f"entry_comments_{index_abs}"] = tmp_slice.iloc[-1].comments_mol
@@ -411,6 +411,10 @@ for ia in range(n_rows):
                                         "not nucleophilic enough","not electrophilic enough",
                                         "aromatic too stable",
                                         "too many interfering functional groups","other"],key=f"select_comments_{index_abs}")
+                                        #note, streamlit saves multiselect as *list*.
+                                        #when logging, however, I cast to string, to be consistent with google sheet writeout.
+                                        #when loading, remember to ast.literal_eval()
+
                         #st.multiselect("**comments on monomer overall** (all that apply)",[
                         #                "too bulky","too many interfering functional groups","repeat unit will look very different",
                         #                "aromatic too stable","other"],key=f"select_comments_general_{index_abs}")
