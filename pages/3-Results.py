@@ -1,3 +1,4 @@
+import ast
 import streamlit as st
 st.set_page_config(layout="wide")
 from rdkit import Chem
@@ -20,6 +21,9 @@ if "prev_data" not in st.session_state or not "settings_initialized" in st.sessi
     st.markdown("No molecules evaluated yet.")
 else:
     mols = []
+    favorites = []
+    favorite_label = [x for x in app_utils.common_comments if "favorite" in x][0]
+    favorite_legends = []
     smiles = []
     good_molids = []
     legends = []
@@ -38,6 +42,24 @@ else:
             legends.append( f"{str(molid)}" )
             good_molids.append(molid)
     
+        rows_with_comments = []
+        for row in tmp_data.iterrows():
+            # Pandas Series rows return as (index, data) tuples
+            if row[1]["comments_ftn"] != "":
+                try:
+                    d = ast.literal_eval(row[1]["comments_ftn"])
+                    if "notes" in d:
+                        if favorite_label in d["notes"]:
+                            smiles.append( tmp_data.iloc[0].smiles )
+                            favorites.append( Chem.MolFromSmiles(smiles[-1]) )
+                            favorite_legends.append( f"{str(molid)}" )
+
+                            legends.append( f"{str(molid)}" )
+                            good_molids.append(molid)
+                            mols.append( Chem.MolFromSmiles(smiles[-1]) )
+                except:
+                    pass
+
     data_details = st.session_state["eval_details"]
     molids = data_details.molid.unique()
     for molid in molids:
@@ -57,13 +79,6 @@ else:
     all_molids.extend( data_details.molid.unique() )
     all_molids = np.unique(all_molids).tolist()
 
-    # Draw
-    svg = Chem.Draw.MolsToGridImage(mols,molsPerRow=3,subImgSize=(250,250),legends=legends, useSVG=True)
-
-    st.markdown(f"### `{len(mols)}`/`{len(all_molids)}` saved molecules were rated as `> 3`:")
-    if len(mols) > 0:
-        st.image(svg)
-
     # Download results
     user_file = f"eval_mol_{st.session_state['userinfo']}.csv"
     #st.session_state["eval_mol"].to_csv(user_file,index=False)
@@ -71,6 +86,21 @@ else:
                        st.session_state["eval_mol"].to_csv(index=False).encode("utf-8"),
                        file_name = user_file
     )
+
+    # Draw
+    svg1 = Chem.Draw.MolsToGridImage(favorites,molsPerRow=3,subImgSize=(250,250),legends=favorite_legends, useSVG=True)
+    st.markdown(f"### `{len(favorites)}` molecules were marked as favorites/noteworthy:")
+    if len(favorites) > 0:
+        st.image(svg1)
+    st.markdown("-----")
+    
+    svg2 = Chem.Draw.MolsToGridImage(mols,molsPerRow=3,subImgSize=(250,250),legends=legends, useSVG=True)
+    st.markdown(f"### `{len(mols)}`/`{len(all_molids)}` saved molecules were rated as `> 3`:")
+    if len(mols) > 0:
+        st.image(svg2)
+
+    
+    
 
 
 # Diagnostic stuff
