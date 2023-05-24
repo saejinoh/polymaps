@@ -27,8 +27,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ===== States =====
-st.session_state.state["reload_batch_evaluation"] = True
+
 
 # ===== ===== BEGIN LAYOUT ===== =====
 st.markdown("# Welcome to MAPS!")
@@ -202,3 +201,6 @@ else:
         ax.invert_yaxis()
         ax.set_xlabel("count")
         st.pyplot(fig)
+
+# ===== States =====
+st.session_state.state["reload_batch_evaluation"] = True
