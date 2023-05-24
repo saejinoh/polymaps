@@ -68,12 +68,21 @@ rating_scale = ("skip (don't answer)","0: N/A","1: impossible","2: bad potential
 rating_scale = ("skip (don't answer)","incorrectly ID'd","1","2","3","4","5")
 rating_scale_index = {entry:ix for ix,entry in enumerate(rating_scale)}
 
+common_comments = ["favorite/especially noteworthy","radical","anionic","cationic","metathesis",
+                    "heavy modification/repeat unit not obvious",
+                    "too many interfering functional groups",
+                    "too bulky (functional group)","too bulky (overall)",
+                    "too electron poor","too electron rich",
+                    "not nucleophilic enough","not electrophilic enough",
+                    "aromatic too stable","other"]
+
 remove_step = False
 remove_rxns = ["rop-thioether","rop-oxazoline","rop-phosphonite","rop-siloxane"]
 read_local  = False
 
 # ===== System state
-st.session_state["state"] = {}
+if "state" not in st.session_state:
+    st.session_state["state"] = {}
 if "reload_batch_evaluation" not in st.session_state.state:
     st.session_state.state["reload_batch_evaluation"] = True
 
