@@ -60,8 +60,8 @@ import os
 # ===== Constants
 homedir = os.path.dirname(__file__)
 
-rxn_name_alias = {"simple":"acyclic alkene","rop-olefin":"ROMP"}
-rxn_name_alias_reverse = {"acyclic alkene":"simple","ROMP":"rop-olefin"}
+rxn_name_alias = {"simple":"acyclic alkene - C=C","rop-olefin":"ROMP"}
+rxn_name_alias_reverse = {"acyclic alkene - C=C":"simple","ROMP":"rop-olefin"}
 
 rating_scale = ("skip","1: bad","2","3: interesting","4","5: good")
 rating_scale = ("skip (don't answer)","0: N/A","1: impossible","2: bad potential","3: workable potential","4: promising potential","5: probably works")
