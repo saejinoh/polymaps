@@ -81,11 +81,7 @@ remove_rxns = ["rop-thioether","rop-oxazoline","rop-phosphonite","rop-siloxane"]
 read_local  = False
 
 # ===== System state
-if "state" not in st.session_state:
-    st.session_state["state"] = {}
-if "reload_batch_evaluation" not in st.session_state.state:
-    st.session_state.state["reload_batch_evaluation"] = True
-
+# best done in firstload()
 
 # ===== Functions
 
@@ -402,6 +398,13 @@ def initialize():
 
 # molecule data
 def first_load():
+    if "state" not in st.session_state:
+        st.session_state["state"] = {}
+    if "reload_batch_evaluation" not in st.session_state.state:
+        st.session_state.state["reload_batch_evaluation"] = True
+
+
+
     if "base_data" not in st.session_state:
         multi,data_rxn = load_data()
         st.session_state["base_data"] = (multi,data_rxn)
