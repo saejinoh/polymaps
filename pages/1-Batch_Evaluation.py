@@ -109,7 +109,7 @@ if st.session_state.state["reload_batch_evaluation"] == True:
         st.session_state[f"entry_{ii}_load"] = True
         st.session_state[f"entry_general_{ii}_load"] = True
     st.session_state.state["reload_batch_evaluation"] = False
-        
+
 #data_slice
 #data_rxn.iloc[data_slice.index.unique("molid")]
 
@@ -411,12 +411,7 @@ for ia in range(n_rows):
                                                 rating_scale,
                                                 key=f"entry_general_{index_abs}",horizontal=True
                                                 ))
-                        st.multiselect("**comments** (select all that apply)",["radical","anionic","cationic","metathesis",
-                                        "significant modification needed/repeat unit not obvious",
-                                        "too bulky (functional group)","too bulky (overall)","too electron poor","too electron rich",
-                                        "not nucleophilic enough","not electrophilic enough",
-                                        "aromatic too stable",
-                                        "too many interfering functional groups","other"],key=f"select_comments_{index_abs}")
+                        st.multiselect("**comments** (select all that apply)",app_utils.common_comments,key=f"select_comments_{index_abs}")
                                         #note, streamlit saves multiselect as *list*.
                                         #when logging, however, I cast to string, to be consistent with google sheet writeout.
                                         #when loading, remember to ast.literal_eval()
