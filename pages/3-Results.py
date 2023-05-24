@@ -8,7 +8,9 @@ import st_utils, app_utils
 st_utils.set_font()
 
 # ===== States =====
-app_utils.first_load()
+if "settings_initialized" not in st.session_state:
+    app_utils.initialize()
+    st.session_state["settings_initialized"] = True
 st.session_state.state["reload_batch_evaluation"] = True
 
 # ===== Main =====

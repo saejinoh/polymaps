@@ -20,7 +20,6 @@ st_utils.set_sidebar(max_width=650, min_width=550)
 app_utils.first_load() #complete loading of unfiltered data if it hasn't been loaded yet.
 
 # States 
-st.session_state.state["reload_batch_evaluation"] = True
 
 # Preamble
 if "settings_initialized" not in st.session_state:

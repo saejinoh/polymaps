@@ -101,7 +101,7 @@ def load_data():
 
     # functional group data
     if read_local:
-        filename = homedir + "/../data/" + "fg_analysis_2023-05-12b.csv"
+        filename = homedir + "/../data/" + "fg_analysis_2023-05-23.csv"
         data_df = pd.read_csv(filename,index_col=False)
     else:
         url = gspdl.urlfy(st.secrets.data.fgroups_key)
@@ -123,7 +123,7 @@ def load_data():
 
     # functional group count data; makes initial filtering easier
     if read_local:
-        filename = homedir + "/../data/" + "rxntypes_2023-05-12b.csv"
+        filename = homedir + "/../data/" + "rxntypes_2023-05-23.csv"
         data_rxn = pd.read_csv(filename,index_col=False)
     else:
         url = gspdl.urlfy(st.secrets.data.data_rxn_key)
@@ -337,6 +337,11 @@ def update_filters_legacy():
 
 # ===== Preprocessing
 def initialize():
+    if "state" not in st.session_state:
+        st.session_state["state"] = {}
+    if "reload_batch_evaluation" not in st.session_state.state:
+        st.session_state.state["reload_batch_evaluation"] = True
+
     if "b_update_data" not in st.session_state:
         st.session_state["b_update_data"] = True
     if "b_update_data_batch" not in st.session_state:
@@ -362,14 +367,14 @@ def initialize():
     # data_rxn
     if "data_rxn" not in st.session_state:
         if read_local:
-            filename = homedir + "/../data/" + "rxntypes_2023-05-12b.csv"
+            filename = homedir + "/../data/" + "rxntypes_2023-05-23.csv"
             data_rxn = pd.read_csv(filename,index_col=False)
             st.session_state["data_rxn"] = data_rxn
         else:
             url = gspdl.urlfy(st.secrets.data.data_rxn_key)
             st.session_state["data_rxn"] = gspdl.url_to_df(url)
     data_rxn = st.session_state["data_rxn"]
-    data_rxn
+    st.write(data_rxn)
 
     # rxn_types
     if "rxn_types" not in st.session_state:
@@ -396,15 +401,9 @@ def initialize():
     if "max_numftn" not in st.session_state:
         st.session_state["max_numftn"] = int(data_rxn.num_ftn.max())
 
+
 # molecule data
 def first_load():
-    if "state" not in st.session_state:
-        st.session_state["state"] = {}
-    if "reload_batch_evaluation" not in st.session_state.state:
-        st.session_state.state["reload_batch_evaluation"] = True
-
-
-
     if "base_data" not in st.session_state:
         multi,data_rxn = load_data()
         st.session_state["base_data"] = (multi,data_rxn)
