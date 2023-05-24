@@ -1,6 +1,8 @@
 import streamlit as st
 
 # ===== States =====
+import app_utils
+app_utils.first_load()
 st.session_state.state["reload_batch_evaluation"] = True
 
 # ===== Main =====
@@ -18,13 +20,17 @@ The idea is that a functional group might be pretty decent in isolation (in term
 
 Additionally, you are also given the opportunity to define other polymerization reactions that a given functional group might be good for, or leave general comments.
 
-
 Roughly think of the rating scale as follows:  
-`1`. Don't bother trying to polymerize it  
-`2`. This monomer would need *a lot* of work to polymerize  
-`3`. This monomer would need some work to polymerize  
-`4`. This monomer needs some work to polymerize, and is interesting   enough to pursue  
-`5`. This monomer probably works
+`5`. Definitely works  
+`4`.   
+`3`. Potentially works (probably involves a good amount of modification to the monomer)  
+`2`. 
+`1`. Impossible (don't bother trying to polymerize it)
+
+
+
+**IMPORTANT:** If the polymerization scheme you are thinking of involves significantly modifying or changing the monomer, there is an option in the general comments field that you should select.
+
 
 ##### 2. How are the ring-opening polymerizations defined?
 The ring-opening polymerization motifs were taken from the [polymer database](https://polymerdatabase.com/polymer%20chemistry/ROMP_table.html).  

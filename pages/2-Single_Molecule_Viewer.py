@@ -17,6 +17,7 @@ import streamlit as st
 import st_utils, app_utils
 st_utils.set_font()
 st_utils.set_sidebar(max_width=650, min_width=550)
+app_utils.first_load() #complete loading of unfiltered data if it hasn't been loaded yet.
 
 # States 
 st.session_state.state["reload_batch_evaluation"] = True
@@ -566,3 +567,5 @@ if checkbox_details:
 
 # ===== Misc
 
+# ===== States =====
+st.session_state.state["reload_batch_evaluation"] = True

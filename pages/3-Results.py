@@ -8,6 +8,7 @@ import st_utils, app_utils
 st_utils.set_font()
 
 # ===== States =====
+app_utils.first_load()
 st.session_state.state["reload_batch_evaluation"] = True
 
 # ===== Main =====
