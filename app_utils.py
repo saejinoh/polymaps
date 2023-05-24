@@ -69,12 +69,18 @@ rating_scale = ("skip (don't answer)","incorrectly ID'd","1","2","3","4","5")
 rating_scale_index = {entry:ix for ix,entry in enumerate(rating_scale)}
 
 common_comments = ["favorite/especially noteworthy","radical","anionic","cationic","metathesis",
-                    "heavy modification/repeat unit not obvious",
-                    "too many interfering functional groups",
+                    "needs modification/repeat unit not obvious",
+                    "interfering functional groups",
                     "too bulky (functional group)","too bulky (overall)",
+                    "electronically unfavorable",
                     "too electron poor","too electron rich",
                     "not nucleophilic enough","not electrophilic enough",
-                    "aromatic too stable","other"]
+                    "aromatic too stable",
+                    "crosslinking",
+                    "solubility issues",
+                    "highly charged species",
+                    "thermodynamically unstable",
+                    "high possibility of side reactions","other"]
 
 remove_step = False
 remove_rxns = ["rop-thioether","rop-oxazoline","rop-phosphonite","rop-siloxane"]
