@@ -26,7 +26,7 @@ Roughly think of the rating scale as follows:
 `5`. Definitely works  
 `4`.   
 `3`. Potentially works (probably involves a good amount of modification to the monomer)  
-`2`. 
+`2`.   
 `1`. Impossible (don't bother trying to polymerize it)
 
 
