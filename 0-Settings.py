@@ -27,6 +27,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# ===== States =====
+st.session_state.state["reload_batch_evaluation"] = True
+
 # ===== ===== BEGIN LAYOUT ===== =====
 st.markdown("# Welcome to MAPS!")
 intro_text = """##### The goal of MAPS (see [slides](https://docs.google.com/presentation/d/1wbf9w7fOz857bkP1-JDzYartVtSpfVswCPmVemt8rW4/edit?usp=sharing)) is to crowd source the ***first*** chemical dataset with an explicit focus on polymerization feasibility. 

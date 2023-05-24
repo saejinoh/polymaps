@@ -18,6 +18,9 @@ import st_utils, app_utils
 st_utils.set_font()
 st_utils.set_sidebar(max_width=650, min_width=550)
 
+# States 
+st.session_state.state["reload_batch_evaluation"] = True
+
 # Preamble
 if "settings_initialized" not in st.session_state:
     st.markdown("# Upon browser refresh, please revisit Settings page first.")

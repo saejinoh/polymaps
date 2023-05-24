@@ -7,6 +7,10 @@ import numpy as np
 import st_utils, app_utils
 st_utils.set_font()
 
+# ===== States =====
+st.session_state.state["reload_batch_evaluation"] = True
+
+# ===== Main =====
 st.markdown("# Results")
 
 if "prev_data" not in st.session_state or not "settings_initialized" in st.session_state:

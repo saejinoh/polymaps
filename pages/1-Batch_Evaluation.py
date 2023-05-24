@@ -78,7 +78,6 @@ if st.session_state["b_update_data_batch"] or "proxy_indices" not in st.session_
 else:
     proxy_indices = st.session_state["proxy_indices"]
 
-
 # ===== Page number
 mols_per_page = st.session_state.mols_per_page #TODO: need to persist this widget...!
 last_page_index = int(np.floor( len(proxy_indices)/mols_per_page ))
@@ -104,6 +103,13 @@ ind0,ind1 = get_page_indices( st.session_state.batch_page )
 
 # ===== generate images of molecules, all the information
 data_slice = multi_filtered.iloc[proxy_indices[ind0:ind1]]
+# States
+if st.session_state.state["reload_batch_evaluation"] == True:
+    for ii in range(data_slice.shape[0]):
+        st.session_state[f"entry_{ii}_load"] = True
+        st.session_state[f"entry_general_{ii}_load"] = True
+    st.session_state.state["reload_batch_evaluation"] = False
+        
 #data_slice
 #data_rxn.iloc[data_slice.index.unique("molid")]
 

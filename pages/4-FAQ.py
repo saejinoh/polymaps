@@ -1,5 +1,10 @@
 import streamlit as st
 
+# ===== States =====
+st.session_state.state["reload_batch_evaluation"] = True
+
+# ===== Main =====
+
 st.markdown("# FAQ and Clarifications")
 st.markdown("""
 ##### 1. Could you further clarify how to rate the molecules?
@@ -39,6 +44,14 @@ st.markdown("---")
 cols = st.columns(2)
 with cols[0]:
     st.markdown("# Updates")
+    st.markdonw("""### 2023.05.23
+- full (automatic) loading for all comments
+- updated comment fields
+""")
+    st.markdown("""### 2023.05.17
+- Streamlined UX for clarity
+- Simplified single molecule page into view and comment
+""")
     st.markdown("""### 2023.05.10  
 - Updated batch evaluation interface
 - Refined functional group evaluation for cleaner data set

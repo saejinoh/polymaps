@@ -31,6 +31,8 @@ import os
 
 
 # < state trackers >
+# - state.reload_batch_evaluation
+
 # - settings_initialized
 # - b_update_data
 # - data_index              (molid, matchidx)
@@ -71,6 +73,10 @@ remove_rxns = ["rop-thioether","rop-oxazoline","rop-phosphonite","rop-siloxane"]
 read_local  = False
 
 # ===== System state
+st.session_state["state"] = {}
+if "reload_batch_evaluation" not in st.session_state.state:
+    st.session_state.state["reload_batch_evaluation"] = True
+
 
 # ===== Functions
 
