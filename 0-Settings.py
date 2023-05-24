@@ -28,6 +28,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+from PIL import Image
+image = Image.open("bio-pacific-announcement-banner.jpg")
+st.image(image, caption='BioPACIFIC Banner')
+
 
 # ===== ===== BEGIN LAYOUT ===== =====
 st.markdown("# Welcome to MAPS!")
