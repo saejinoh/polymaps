@@ -55,6 +55,7 @@ with cols[0]:
     st.markdonw("""### 2023.05.23
 - full (automatic) loading for all comments
 - updated comment fields
+- more granular selection of step reaction functional groups
 """)
     st.markdown("""### 2023.05.17
 - Streamlined UX for clarity
