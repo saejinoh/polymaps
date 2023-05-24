@@ -374,7 +374,6 @@ def initialize():
             url = gspdl.urlfy(st.secrets.data.data_rxn_key)
             st.session_state["data_rxn"] = gspdl.url_to_df(url)
     data_rxn = st.session_state["data_rxn"]
-    st.write(data_rxn)
 
     # rxn_types
     if "rxn_types" not in st.session_state:
