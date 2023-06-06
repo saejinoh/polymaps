@@ -129,7 +129,10 @@ def log_general_comment():
         Requires the following: 
     """
     comment_dict = {}
-    molid, molidx = st.session_state["data_index"]
+    try:
+        molid, molidx = st.session_state["data_index"]
+    except:
+         molid, molidx = 0,0
     comment_dict["molid"],comment_dict["molidx"] = molid, molidx
     comment_dict["smiles"] = st.session_state["data_rxn"].loc[molid].smiles
     comment_dict["userinfo"] = st.session_state["userinfo"]
