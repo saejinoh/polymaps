@@ -92,7 +92,7 @@ with cols[0]:
                                         "molecule presentation mode: (sequential or random)",
                                         options = ("random","sequential"),
                                         key="iteration_selection",
-                                        val0 = "random",
+                                        val0 = "sequential",
                                         on_change = lambda: set_update_data_flag(True))
 
 with cols[1]:
