@@ -52,7 +52,7 @@ st.markdown("---")
 cols = st.columns(2)
 with cols[0]:
     st.markdown("# Updates")
-    st.markdonw("""### 2023.05.23
+    st.markdown("""### 2023.05.23
 - full (automatic) loading for all comments
 - updated comment fields
 - more granular selection of step reaction functional groups
