@@ -52,6 +52,10 @@ st.markdown("---")
 cols = st.columns(2)
 with cols[0]:
     st.markdown("# Updates")
+    st.markdown("""### 2024.01.09
+- fixed typos
+- fixed errors on the 'acyclic alkene - C=C' polymerization motif
+    """)
     st.markdown("""### 2023.05.23
 - full (automatic) loading for all comments
 - updated comment fields
