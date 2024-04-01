@@ -68,11 +68,13 @@ rating_scale = ("skip (don't answer)","0: N/A","1: impossible","2: bad potential
 rating_scale = ("skip (don't answer)","incorrectly ID'd","1","2","3","4","5")
 rating_scale_index = {entry:ix for ix,entry in enumerate(rating_scale)}
 
-common_comments = [ "needs post-functionalization",
-                    "steric hindrance",
-                    "electronically unfavorable",
-                    "too electron poor","too electron rich",
-                    "crosslinking" ]
+common_comments = [ "Post-functionalization possible", 
+                    "Steric hindrance",
+                    "Bad electronics (too electron rich/poor)",
+                    "crosslinking”, "solubility issues”,
+                    "thermodynamically unstable”,
+                    "high possibility of side reactions”
+                    ]
 
 remove_step = False
 remove_rxns = ["rop-thioether","rop-oxazoline","rop-phosphonite","rop-siloxane"]
